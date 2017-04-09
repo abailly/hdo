@@ -13,6 +13,7 @@ import           Data.ByteString.Lazy.Char8 (unpack)
 import           Data.CaseInsensitive       (mk)
 import           Data.Functor               (void)
 import           Data.Text.Encoding         (encodeUtf8)
+import           Network.HTTP.Simple
 import           Network.REST.Commands
 import           Network.URI
 
@@ -20,12 +21,12 @@ data Debug where
   NoDebug   :: Debug
   Debug     :: Debug
 
-data RequestBody where
-  Body :: forall a . (ToJSON a) => a -> RequestBody
+data WithBody where
+  Body :: forall a . (ToJSON a) => a -> WithBody
 
 data RequestLog where
   RequestLog         :: Request                -> RequestLog
-  RequestLogWithBody :: Request -> RequestBody -> RequestLog
+  RequestLogWithBody :: Request -> WithBody -> RequestLog
 
 debugRequest :: Debug -> RequestLog -> IO ()
 debugRequest NoDebug _                                 = pure ()
@@ -60,7 +61,7 @@ runConduit debug r = do
         debugRequest debug (RequestLog request)
         response <- debugResponse debug $ httpJSON request
         let value = getResponseBody response :: Value
-        runConduit debug (k $ Right value)
+        runConduit debug (k value)
 
       step (Free (GetWith opts uri k)) = do
         request <- parseRequest $ "GET " ++ asString uri
@@ -85,8 +86,7 @@ runConduit debug r = do
       step (Free (PostWith opts uri val k)) = do
         request <- parseRequest $ "POST " ++ asString uri
         debugRequest debug (RequestLogWithBody request (Body val))
-        response <- httpLbs $ options opts $ setRequestBodyJSON val request
-        debugResponse debug response
+        response <- debugResponse debug $ httpLbs $ options opts $ setRequestBodyJSON val request
         let value :: Either String Value = eitherDecode $ getResponseBody response
         runConduit debug (k value)
 
