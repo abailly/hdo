@@ -1,4 +1,5 @@
-{-# LANGUAGE ScopedTypeVariables, TypeOperators #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeOperators       #-}
 module Network.DO(
   -- * Types
   Command,
@@ -14,7 +15,7 @@ module Network.DO(
   listDomains, createDomain, deleteDomain,
   listRecords, createRecord, deleteRecord,
   -- * Utilities
-  runDOEnv, runDO, getAuthFromEnv, outputResult,
+  runDOEnv, runDO, runDODebug, getAuthFromEnv, outputResult,
   generateName,
   module Network.DO.Droplets.Utils) where
 
@@ -112,7 +113,11 @@ runDOEnv actions = getAuthFromEnv >>= runDO actions
 
 -- | Run DO actions, passing a built authentication token.
 runDO :: Command IO a -> Maybe AuthToken -> IO a
-runDO actions token =  runConduit $ pairEffectM (\ _ b -> return b) (mkDOClient $ Tool Nothing token False) actions
+runDO actions token =  runConduit NoDebug $ pairEffectM (\ _ b -> return b) (mkDOClient $ Tool Nothing token False) actions
+
+-- | Run DO actions, debugging requests, passing a built authentication token.
+runDODebug :: Command IO a -> Maybe AuthToken -> IO a
+runDODebug actions token =  runConduit Debug $ pairEffectM (\ _ b -> return b) (mkDOClient $ Tool Nothing token False) actions
 
 
 getAuthFromEnv :: IO (Maybe AuthToken)
