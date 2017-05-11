@@ -42,7 +42,7 @@ doCreateIP w config = maybe (return $ error "no authentication token defined", w
 
 doDeleteIP :: (ComonadEnv ToolConfiguration w, Monad m) => w a -> IP -> (RESTT m (Maybe String), w a)
 doDeleteIP w ip = maybe (return $ Just "no authentication token defined", w)
-                  (\ t -> let r = deleteJSONWith (authorisation t) (toURI $ floatingIpsEndpoint </> show ip) >> return Nothing
+                  (\ t -> let r = deleteJSONWith (authorisation t) (toURI $ floatingIpsEndpoint </> show ip) (toJSON ()) >> return Nothing
                           in (r, w))
                   (authToken (ask w))
 

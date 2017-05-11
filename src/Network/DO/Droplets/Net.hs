@@ -51,7 +51,7 @@ doCreate w config = maybe (return $ error "no authentication token defined", w)
 
 doDestroyDroplet :: (ComonadEnv ToolConfiguration w, Monad m) => w a -> Id -> (RESTT m (Maybe String), w a)
 doDestroyDroplet w dropletId = maybe (return $ Just "no authentication token defined", w)
-                               (\ t -> let r = deleteJSONWith (authorisation t) (toURI $ dropletsEndpoint </> show dropletId) >> return Nothing
+                               (\ t -> let r = deleteJSONWith (authorisation t) (toURI $ dropletsEndpoint </> show dropletId) (toJSON ()) >> return Nothing
                                        in (r, w))
                                (authToken (ask w))
 

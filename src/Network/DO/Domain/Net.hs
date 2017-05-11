@@ -45,7 +45,7 @@ doCreateDomain w name ip = maybe (return $ error "no authentication token define
 
 doDeleteDomain :: (ComonadEnv ToolConfiguration w, Monad m) => w a -> DomainName -> (RESTT m (Maybe String), w a)
 doDeleteDomain w name = maybe (return $ Just "no authentication token defined", w)
-                  (\ t -> let r = deleteJSONWith (authorisation t) (toURI $ domainsEndpoint </> show name) >> return Nothing
+                  (\ t -> let r = deleteJSONWith (authorisation t) (toURI $ domainsEndpoint </> show name) (toJSON ()) >> return Nothing
                           in (r, w))
                   (authToken (ask w))
 
@@ -68,7 +68,7 @@ doCreateRecord w name record =
 doDeleteRecord :: (ComonadEnv ToolConfiguration w, Monad m) => w a -> DomainName -> Id -> (RESTT m (Maybe String), w a)
 doDeleteRecord w name rid =
   maybe (return $ Just "no authentication token defined", w)
-  (\ t -> let r = deleteJSONWith (authorisation t) (toURI $ domainsEndpoint </> show name </> "records" </> show rid ) >> return Nothing
+  (\ t -> let r = deleteJSONWith (authorisation t) (toURI $ domainsEndpoint </> show name </> "records" </> show rid ) (toJSON ()) >> return Nothing
           in (r, w))
   (authToken (ask w))
 
