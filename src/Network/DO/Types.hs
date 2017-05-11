@@ -680,6 +680,11 @@ resourceTypes = ["droplet", "volume", "backend"]
 instance Show ResourceType where
   show r = resourceTypes !! fromEnum r
 
+instance Read ResourceType where
+  readsPrec _ sz = case elemIndex sz resourceTypes of
+                    Just i  -> return (toEnum i, "")
+                    Nothing -> fail $ "cannot parse " <> sz
+
 instance FromJSON ResourceType where
   parseJSON (String v) =
     case elemIndex (unpack v) resourceTypes of

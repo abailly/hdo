@@ -111,6 +111,18 @@ instance Pretty DomainRecord where
 
 instance Pretty DNSType
 
+instance Pretty Tag where
+  pretty Tag{..} = text tagName $$
+                   nest 5 (text "droplets" <+> (brackets $ int $ tagDropletsCount $ tagDroplets tagResources)) $$
+                   nest 10 (maybe (text "<none>") pretty (tagDropletsLastTagged $ tagDroplets tagResources)) $$
+                   nest 5 (text "volumes" <+> (brackets $ int $ tagVolumesCount $ tagVolumes tagResources))    $$
+                   nest 10 (maybe (text "<none>") pretty (tagVolumesLastTagged $ tagVolumes tagResources))
+
+instance Pretty Volume where
+  pretty Volume{..} = integer volumeId $$
+                      nest 5 (text volumeName <+> brackets (int volumeSizeGigaBytes <> text "GiB") <+> pretty volumeRegion) $$
+                      nest 5 (hcat $ punctuate (char ',') $ integer <$> volumeDropletIds)
+
 outputResult :: (Pretty a, MonadIO m) => a -> m  ()
 outputResult = liftIO . putStrLn . render . pretty
 
