@@ -14,6 +14,9 @@ module Network.DO(
   -- * Domains Commands
   listDomains, createDomain, deleteDomain,
   listRecords, createRecord, deleteRecord,
+  -- * Tags Commands
+  listTags, createTag, retrieveTag, deleteTag,
+  tagResources, untagResources,
   -- * Utilities
   runDOEnv, runDO, runDODebug, getAuthFromEnv, outputResult,
   generateName,
@@ -22,34 +25,50 @@ module Network.DO(
 import           Control.Exception            (catch, throw)
 import           Control.Monad.Trans.Free
 import           Data.IP
-import qualified Network.DO.Commands          as C
-import qualified Network.DO.Domain            as C
-import qualified Network.DO.Droplets.Commands as C
 import           Network.DO.Droplets.Utils
-import qualified Network.DO.IP.Commands       as C
 import           Network.DO.Names
 import           Network.DO.Net
 import           Network.DO.Pairing
 import           Network.DO.Pretty
-import           Network.DO.Types
+import           Network.DO.Types             hiding(name, tagResources)
 import           Network.REST
 import           System.Environment           (getEnv)
 import           System.IO.Error              (isDoesNotExistError)
+import qualified Network.DO.Commands          as C
+import qualified Network.DO.Domain            as C
+import qualified Network.DO.Droplets.Commands as C
+import qualified Network.DO.IP.Commands       as C
+import qualified Network.DO.Tags.Commands     as C
 
-type Command w a = FreeT (C.DO :+: C.DropletCommands :+: C.IPCommands :+: C.DomainCommands) (RESTT w) a
+type Command w a = FreeT (C.DO :+: C.DropletCommands :+: C.IPCommands :+: C.DomainCommands :+: C.TagsCommands) (RESTT w) a
 
+--
+-- KEYS
+--
 listKeys :: (Monad w) => Command w [Key]
 listKeys = injl C.listKeys
 
+--
+-- SIZES
+--
 listSizes :: (Monad w) => Command w [Size]
 listSizes = injl C.listSizes
 
+--
+-- IMAGES
+--
 listImages  :: (Monad w) => Command w  [Image]
 listImages = injl C.listImages
 
+--
+-- REGIONS
+--
 listRegions :: (Monad w) => Command w [Region]
 listRegions = injl C.listRegions
 
+--
+-- FLOATING IPS
+--
 listFloatingIPs :: (Monad w) => Command w [FloatingIP]
 listFloatingIPs = injrrl C.listFloatingIPs
 
@@ -65,24 +84,33 @@ assignFloatingIP ip did = injrrl $ C.floatingIPAction ip (AssignIP did)
 unassignFloatingIP :: (Monad w) => IP -> Command w (Result (ActionResult IPActionType))
 unassignFloatingIP ip = injrrl $ C.floatingIPAction ip UnassignIP
 
+--
+-- DOMAINS
+--
 listDomains :: (Monad w) => Command w [Domain]
-listDomains = injrrr C.listDomains
+listDomains = injrrrl C.listDomains
 
 createDomain :: (Monad w) => DomainName -> IP -> Command w (Result Domain)
-createDomain dname ip = injrrr $ C.createDomain dname ip
+createDomain dname ip = injrrrl $ C.createDomain dname ip
 
 deleteDomain :: (Monad w) => DomainName -> Command w (Result ())
-deleteDomain = injrrr . C.deleteDomain
+deleteDomain = injrrrl . C.deleteDomain
 
+--
+-- RECORDS
+--
 listRecords :: (Monad w) => DomainName -> Command w [DomainRecord]
-listRecords = injrrr . C.listRecords
+listRecords = injrrrl . C.listRecords
 
 createRecord :: (Monad w) => DomainName -> DomainRecord -> Command w (Result DomainRecord)
-createRecord dname ip = injrrr $ C.createRecord dname ip
+createRecord dname ip = injrrrl $ C.createRecord dname ip
 
 deleteRecord :: (Monad w) => DomainName -> Id -> Command w (Result ())
-deleteRecord dname rid = injrrr $ C.deleteRecord dname rid
+deleteRecord dname rid = injrrrl $ C.deleteRecord dname rid
 
+--
+-- DROPLETS
+--
 listDroplets :: (Monad w) => Command w [Droplet]
 listDroplets = injrl C.listDroplets
 
@@ -106,6 +134,29 @@ getAction  did = injrl . C.getAction did
 
 listDropletSnapshots :: (Monad w) => Id -> Command w [Image]
 listDropletSnapshots = injrl . C.listDropletSnapshots
+
+--
+-- TAGS
+--
+listTags :: (Monad w) => Command w [Tag]
+listTags = injrrrr C.listTags
+
+createTag :: (Monad w) => TagName -> Command w (Either Error Tag)
+createTag = injrrrr . C.createTag
+
+retrieveTag :: (Monad w) => TagName -> Command w (Either Error Tag)
+retrieveTag = injrrrr . C.retrieveTag
+
+deleteTag :: (Monad w) => TagName -> Command w (Either Error ())
+deleteTag = injrrrr . C.deleteTag
+
+tagResources :: (Monad w) => TagName -> TagPairs -> Command w (Either Error ())
+tagResources name = injrrrr . C.tagResources name
+
+untagResources :: (Monad w) => TagName -> TagPairs -> Command w (Either Error ())
+untagResources name = injrrrr . C.untagResources name
+
+
 
 -- | Run DO actions, extracting authentication token from environment variable `AUTH_TOKEN`.
 runDOEnv :: Command IO a -> IO a

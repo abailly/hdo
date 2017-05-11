@@ -733,8 +733,10 @@ instance ToJSON Volume where
 --
 -- https://developers.digitalocean.com/documentation/v2/#tags
 
+type TagName = String
+
 data Tag = Tag
-  { tagName      :: String        -- ^ The tag name
+  { tagName      :: TagName       -- ^ The tag name
   , tagResources :: TagResources  -- ^ An embedded object containing key value pairs of resource type and resource statistics
   } deriving (Show)
 

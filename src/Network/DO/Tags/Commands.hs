@@ -17,8 +17,6 @@ import Control.Monad.Trans.Free
 import Network.DO.Pairing
 import Network.DO.Types hiding (TagResources, tagResources, name)
 
-type TagName = String
-
 -- | Available commands for tags
 data TagsCommands a = CreateTag TagName (Result Tag -> a)
                     | RetrieveTag TagName (Result Tag -> a)
