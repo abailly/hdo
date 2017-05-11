@@ -13,14 +13,14 @@ module Network.DO.Types where
 import           Data.Aeson        as A hiding (Error, Result)
 import           Data.Aeson.Types  as A hiding (Error, Result)
 import           Data.Default
+import           Data.Maybe        (isNothing)
 import qualified Data.HashMap.Lazy as H
 import           Data.IP
-import           Data.List         (elemIndex)
+import           Data.List         (elemIndex, concat)
 import           Data.Monoid       ((<>))
 import           Data.Text         (pack, unpack)
 import           Data.Time         (UTCTime)
 import           GHC.Generics
-import           GHC.Exts          (toList)
 import qualified Text.Parsec       as P
 
 type AuthToken = String
@@ -157,11 +157,18 @@ instance FromJSON (Bytes Giga) where
   parseJSON (Number n) = jsonBytes (truncate n)
   parseJSON e          = failParse e
 
+instance ToJSON (Bytes a) where
+  toJSON Bytes{..} = toJSON bytesSize
+
+
 newtype Date = Date { theDate :: UTCTime } deriving Show
 
 instance FromJSON Date where
   parseJSON d@(String _) = Date <$> parseJSON d
   parseJSON e            = failParse e
+
+instance ToJSON Date where
+  toJSON Date{..} = toJSON theDate
 
 data Status = New
             | Active
@@ -171,12 +178,19 @@ data Status = New
 
 instance FromJSON Status where
   parseJSON (String s) = case s of
-                          "new" -> return New
-                          "active" -> return Active
-                          "off" -> return Off
-                          "archive" -> return Archive
-                          _        -> fail $ "cannot parse " <> unpack s
+                          "new"      -> return New
+                          "active"   -> return Active
+                          "off"      -> return Off
+                          "archive"  -> return Archive
+                          _          -> fail $ "cannot parse " <> unpack s
   parseJSON e          = failParse e
+
+instance ToJSON Status where
+  toJSON New     = "new"
+  toJSON Active  = "active"
+  toJSON Off     = "off"
+  toJSON Archive = "archive"
+
 
 data NetType = Public | Private deriving (Show, Eq)
 
@@ -210,6 +224,10 @@ instance FromJSON NetType where
                           e         -> failParse e
   parseJSON e          = failParse e
 
+instance ToJSON NetType where
+  toJSON Public  = "public"
+  toJSON Private = "private"
+
 data V4
 data V6
 
@@ -220,13 +238,28 @@ jsonNetwork f n = f
                   <*> (n .: "gateway")
                   <*> (n .: "type")
 
+toJsonNetwork :: (ToJSON netmask) => IP -> netmask -> IP -> NetType -> Value
+toJsonNetwork ip_address netmask gateway netType = object [ "ip_address" .= ip_address
+                                                          , "netmask"    .= netmask
+                                                          , "gateway"    .= gateway
+                                                          , "type"       .= netType
+                                                          ]
+
 instance FromJSON (Network V4) where
   parseJSON (Object n) = jsonNetwork NetworkV4 n
   parseJSON e          = failParse e
 
+instance ToJSON (Network V4) where
+  toJSON NetworkV4{..} = toJsonNetwork ip_address netmask gateway netType
+  toJSON NetworkV6{..} = toJsonNetwork ip_address netmask_v6 gateway netType
+
 instance FromJSON (Network V6) where
   parseJSON (Object n) = jsonNetwork NetworkV6 n
   parseJSON e          = fail $ "cannot parse network v6 " <> show e
+
+instance ToJSON (Network V6) where
+  toJSON NetworkV4{..} = toJsonNetwork ip_address netmask gateway netType
+  toJSON NetworkV6{..} = toJsonNetwork ip_address netmask_v6 gateway netType
 
 
 -- | Type of Networks configured for a @Droplet@
@@ -246,6 +279,12 @@ instance FromJSON Networks where
                               <$> (n .: "v4")
                               <*> (n .: "v6")
   parseJSON e          = fail $ "cannot parse network v6 " <> show e
+
+instance ToJSON Networks where
+  toJSON NoNetworks = Null
+  toJSON Networks{..} = object [ "v4" .= v4
+                               , "v6" .= v6
+                               ]
 
 -- | (Partial) Type of Droplets
 --
@@ -281,6 +320,22 @@ instance FromJSON Droplet where
                          <*> o .: "size_slug"
                          <*> o .: "networks"
   parseJSON e          = fail $ "cannot parse network v6 " <> show e
+
+instance ToJSON Droplet where
+  toJSON Droplet{..} = object [ "id"           .= dropletId
+                              , "name"         .= name
+                              , "memory"       .= memory
+                              , "vcpus"        .= vcpus
+                              , "disk"         .= disk
+                              , "locked"       .= locked
+                              , "created_at"   .= created_at
+                              , "status"       .= status
+                              , "backup_ids"   .= backup_ids
+                              , "snapshot_ids" .= snapshot_ids
+                              , "region"       .= region
+                              , "size_slug"    .= size_slug
+                              , "networks"     .= networks
+                              ]
 
 
 data ImageType = Snapshot
@@ -663,6 +718,17 @@ instance FromJSON Volume where
 
   parseJSON e          = failParse e
 
+instance ToJSON Volume where
+  toJSON Volume{..} = object [ "id"             .= volumeId
+                             , "region"         .= volumeRegion
+                             , "droplet_ids"    .= volumeDropletIds
+                             , "name"           .= volumeName
+                             , "description"    .= volumeDescription
+                             , "size_gigabytes" .= volumeSizeGigaBytes
+                             , "created_at"     .= volumeSizeGigaBytes
+                             ]
+
+
 -- | Type of Tags
 --
 -- https://developers.digitalocean.com/documentation/v2/#tags
@@ -727,8 +793,8 @@ instance FromJSON TagVolumes where
   parseJSON e          = failParse e
 
 instance FromJSON TagPairs where
-  parseJSON (Array a) = TagPairs
-                        <$> fmap toList (traverse parseJSON a)
+  parseJSON (Object o) = TagPairs
+                         <$> o .: "resources"
 
   parseJSON e         = failParse e
 
@@ -738,6 +804,36 @@ instance FromJSON TagPair where
                          <*> o .: "resource_type"
 
   parseJSON e          = failParse e
+
+instance ToJSON Tag where
+  toJSON Tag{..} = object [ "name"      .= tagName
+                          , "resources" .= tagResources
+                          ]
+
+instance ToJSON TagResources where
+  toJSON TagResources{..} = object $ concat
+    [ if isNothing (tagDropletsLastTagged tagDroplets) then [] else ["droplets" .= tagDroplets]
+    , if isNothing (tagVolumesLastTagged tagVolumes)   then [] else ["volumes"  .= tagVolumes]
+    ]
+
+instance ToJSON TagDroplets where
+  toJSON TagDroplets{..} = object [ "count"       .= tagDropletsCount
+                                  , "last_tagged" .= tagDropletsLastTagged
+                                  ]
+
+instance ToJSON TagVolumes where
+  toJSON TagVolumes{..} = object [ "count"       .= tagVolumesCount
+                                 , "last_tagged" .= tagVolumesLastTagged
+                                 ]
+
+instance ToJSON TagPairs where
+  toJSON TagPairs{..} = object [ "resouces" .= tagPairsResources
+                               ]
+
+instance ToJSON TagPair where
+  toJSON TagPair{..} = object [ "resource_id"   .= tagPairResourceId
+                              , "resource_type" .= tagPairResourceType
+                              ]
 
 
 -- Utility
