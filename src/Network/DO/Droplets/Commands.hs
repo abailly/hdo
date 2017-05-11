@@ -17,7 +17,7 @@ import           Prelude                      as P
 -- | Available commands for droplets
 data DropletCommands a = ListDroplets ([Droplet] -> a)
                        | CreateDroplet BoxConfiguration (Result Droplet -> a)
-                       | DestroyDroplet Id (Maybe String -> a)
+                       | DestroyDroplet Id (Result () -> a)
                        | DropletAction Id Action (Result (ActionResult DropletActionType) -> a)
                        | GetAction Id Id (Result (ActionResult DropletActionType) -> a)
                        | ListSnapshots Id ([Image] -> a)
@@ -38,7 +38,7 @@ createDroplet conf = CreateDroplet conf P.id
 showDroplet :: Id -> DropletCommands (Result Droplet)
 showDroplet did = ShowDroplet did P.id
 
-destroyDroplet :: Id -> DropletCommands (Maybe String)
+destroyDroplet :: Id -> DropletCommands (Result ())
 destroyDroplet did = DestroyDroplet did P.id
 
 dropletAction :: Id -> Action -> DropletCommands (Result (ActionResult DropletActionType))
@@ -57,7 +57,7 @@ listDropletSnapshots did = ListSnapshots did P.id
 -- | Comonadic interpreter for @DropletCommands@
 data CoDropletCommands m k = CoDropletCommands { listDropletsH   :: (m [Droplet], k)
                                                , createDropletH  :: BoxConfiguration -> (m (Result Droplet), k)
-                                               , destroyDropletH :: Id -> (m (Maybe String), k)
+                                               , destroyDropletH :: Id -> (m (Result ()), k)
                                                , actionDropletH  :: Id -> Action -> (m (Result (ActionResult DropletActionType)), k)
                                                , getActionH      :: Id -> Id -> (m (Result (ActionResult DropletActionType)), k)
                                                , listSnapshotsH  :: Id -> (m [Image], k)

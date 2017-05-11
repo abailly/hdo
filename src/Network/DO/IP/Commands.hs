@@ -13,7 +13,7 @@ import           Prelude                      as P
 -- functor for DO DSL
 data IPCommands a = ListFloatingIPs ([FloatingIP] -> a)
                   | CreateIP FloatingIPTarget (Result FloatingIP -> a)
-                  | DeleteIP IP (Maybe String -> a)
+                  | DeleteIP IP (Result () -> a)
                   | ActionIP IP IPAction (Result (ActionResult IPActionType) -> a)
           deriving (Functor)
 
@@ -27,7 +27,7 @@ listFloatingIPs = ListFloatingIPs P.id
 createFloatingIP :: FloatingIPTarget -> IPCommands (Result FloatingIP)
 createFloatingIP target = CreateIP target P.id
 
-deleteFloatingIP :: IP -> IPCommands (Maybe String)
+deleteFloatingIP :: IP -> IPCommands (Result ())
 deleteFloatingIP ip = DeleteIP ip P.id
 
 floatingIPAction :: IP -> IPAction -> IPCommands (Result (ActionResult IPActionType))
@@ -37,7 +37,7 @@ floatingIPAction ip action = ActionIP ip action P.id
 data CoIPCommands m k =
   CoIPCommands { listFloatingIPsH  :: (m [FloatingIP], k)
                , createFloatingIPH :: FloatingIPTarget -> (m (Result FloatingIP), k)
-               , deleteIPH         :: IP -> (m (Maybe String), k)
+               , deleteIPH         :: IP -> (m (Result ()), k)
                , actionIPH         :: IP -> IPAction -> (m (Result (ActionResult IPActionType)), k)
                } deriving Functor
 

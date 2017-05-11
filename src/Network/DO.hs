@@ -56,7 +56,7 @@ listFloatingIPs = injrrl C.listFloatingIPs
 createFloatingIP :: (Monad w) => FloatingIPTarget -> Command w (Result FloatingIP)
 createFloatingIP = injrrl . C.createFloatingIP
 
-deleteFloatingIP :: (Monad w) => IP -> Command w (Maybe String)
+deleteFloatingIP :: (Monad w) => IP -> Command w (Result ())
 deleteFloatingIP = injrrl . C.deleteFloatingIP
 
 assignFloatingIP :: (Monad w) => IP -> Id -> Command w (Result (ActionResult IPActionType))
@@ -71,7 +71,7 @@ listDomains = injrrr C.listDomains
 createDomain :: (Monad w) => DomainName -> IP -> Command w (Result Domain)
 createDomain dname ip = injrrr $ C.createDomain dname ip
 
-deleteDomain :: (Monad w) => DomainName -> Command w (Maybe String)
+deleteDomain :: (Monad w) => DomainName -> Command w (Result ())
 deleteDomain = injrrr . C.deleteDomain
 
 listRecords :: (Monad w) => DomainName -> Command w [DomainRecord]
@@ -80,7 +80,7 @@ listRecords = injrrr . C.listRecords
 createRecord :: (Monad w) => DomainName -> DomainRecord -> Command w (Result DomainRecord)
 createRecord dname ip = injrrr $ C.createRecord dname ip
 
-deleteRecord :: (Monad w) => DomainName -> Id -> Command w (Maybe String)
+deleteRecord :: (Monad w) => DomainName -> Id -> Command w (Result ())
 deleteRecord dname rid = injrrr $ C.deleteRecord dname rid
 
 listDroplets :: (Monad w) => Command w [Droplet]
@@ -92,7 +92,7 @@ createDroplet = injrl . C.createDroplet
 showDroplet :: (Monad w) => Integer -> Command w (Either Error Droplet)
 showDroplet = injrl . C.showDroplet
 
-destroyDroplet :: (Monad w) => Integer -> Command w (Maybe String)
+destroyDroplet :: (Monad w) => Integer -> Command w (Result ())
 destroyDroplet = injrl . C.destroyDroplet
 
 dropletAction :: (Monad w) => Id -> Action -> Command w (Result (ActionResult DropletActionType))

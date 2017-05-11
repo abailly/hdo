@@ -36,7 +36,7 @@ doListSnapshots w dropletId =
   (authToken (ask w))
 
 doCreate :: (ComonadEnv ToolConfiguration w, Monad m) => w a -> BoxConfiguration -> (RESTT m (Result Droplet), w a)
-doCreate w config = maybe (return $ error "no authentication token defined", w)
+doCreate w config = maybe (errMissingToken, w)
   runQuery
   (authToken (ask w))
   where
@@ -49,28 +49,28 @@ doCreate w config = maybe (return $ error "no authentication token defined", w)
                        err      -> return err
                  in (droplets, w)
 
-doDestroyDroplet :: (ComonadEnv ToolConfiguration w, Monad m) => w a -> Id -> (RESTT m (Maybe String), w a)
-doDestroyDroplet w dropletId = maybe (return $ Just "no authentication token defined", w)
-                               (\ t -> let r = deleteJSONWith (authorisation t) (toURI $ dropletsEndpoint </> show dropletId) (toJSON ()) >> return Nothing
+doDestroyDroplet :: (ComonadEnv ToolConfiguration w, Monad m) => w a -> Id -> (RESTT m (Result ()), w a)
+doDestroyDroplet w dropletId = maybe (errMissingToken, w)
+                               (\ t -> let r = deleteJSONWith (authorisation t) (toURI $ dropletsEndpoint </> show dropletId) (toJSON ()) >> return (Right ())
                                        in (r, w))
                                (authToken (ask w))
 
 doAction :: (ComonadEnv ToolConfiguration w, Monad m) => w a -> Id -> Action -> (RESTT m (Result (ActionResult DropletActionType)), w a)
-doAction w dropletId action = maybe (return $ error "no authentication token defined", w)
+doAction w dropletId action = maybe (errMissingToken, w)
                               (\ t -> let r = postJSONWith (authorisation t) (toURI $ dropletsEndpoint </> show dropletId </> "actions") (toJSON action)
                                               >>= return . fromResponse "action"
                                       in (r, w))
                               (authToken (ask w))
 
 doGetAction :: (ComonadEnv ToolConfiguration w, Monad m) => w a -> Id -> Id -> (RESTT m (Result (ActionResult DropletActionType)), w a)
-doGetAction w dropletId actionId = maybe (return $ error "no authentication token defined", w)
+doGetAction w dropletId actionId = maybe (errMissingToken, w)
                                    (\ t -> let r = getJSONWith (authorisation t) (toURI $ dropletsEndpoint </> show dropletId </> "actions" </> show actionId)
                                                    >>= return . fromResponse "action" . Right
                                            in (r, w))
                                    (authToken (ask w))
 
 doShowDroplet  :: (ComonadEnv ToolConfiguration w, Monad m) => w a -> Id -> (RESTT m (Result Droplet), w a)
-doShowDroplet w dropletId = maybe (return $ error "no authentication token defined", w)
+doShowDroplet w dropletId = maybe (errMissingToken, w)
                             (\ t -> let r = fromResponse "droplet" . Right <$> getJSONWith (authorisation t) (toURI $ dropletsEndpoint </> show dropletId)
                                     in (r, w))
                             (authToken (ask w))

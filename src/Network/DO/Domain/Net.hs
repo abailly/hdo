@@ -32,7 +32,7 @@ instance Listable Domain where
   listField _    = "domains"
 
 doCreateDomain :: (ComonadEnv ToolConfiguration w, Monad m) => w a -> DomainName -> IP -> (RESTT m (Result Domain), w a)
-doCreateDomain w name ip = maybe (return $ error "no authentication token defined", w)
+doCreateDomain w name ip = maybe (errMissingToken, w)
   runQuery
   (authToken (ask w))
   where
@@ -43,9 +43,9 @@ doCreateDomain w name ip = maybe (return $ error "no authentication token define
       where
         config = DomainConfig name ip
 
-doDeleteDomain :: (ComonadEnv ToolConfiguration w, Monad m) => w a -> DomainName -> (RESTT m (Maybe String), w a)
-doDeleteDomain w name = maybe (return $ Just "no authentication token defined", w)
-                  (\ t -> let r = deleteJSONWith (authorisation t) (toURI $ domainsEndpoint </> show name) (toJSON ()) >> return Nothing
+doDeleteDomain :: (ComonadEnv ToolConfiguration w, Monad m) => w a -> DomainName -> (RESTT m (Result ()), w a)
+doDeleteDomain w name = maybe (errMissingToken, w)
+                  (\ t -> let r = deleteJSONWith (authorisation t) (toURI $ domainsEndpoint </> show name) (toJSON ()) >> return (Right ())
                           in (r, w))
                   (authToken (ask w))
 
@@ -57,7 +57,7 @@ doListRecords w name = maybe (return [], w)
 
 doCreateRecord :: (ComonadEnv ToolConfiguration w, Monad m) => w a -> DomainName -> DomainRecord -> (RESTT m (Result DomainRecord), w a)
 doCreateRecord w name record =
-  maybe (return $ error "no authentication token defined", w)
+  maybe (errMissingToken,  w)
   runQuery
   (authToken (ask w))
   where
@@ -65,10 +65,10 @@ doCreateRecord w name record =
                      domain = postJSONWith opts (toURI $ domainsEndpoint </> show name </> "records") (toJSON record) >>= return . fromResponse "domain_record"
                  in (domain, w)
 
-doDeleteRecord :: (ComonadEnv ToolConfiguration w, Monad m) => w a -> DomainName -> Id -> (RESTT m (Maybe String), w a)
+doDeleteRecord :: (ComonadEnv ToolConfiguration w, Monad m) => w a -> DomainName -> Id -> (RESTT m (Result ()), w a)
 doDeleteRecord w name rid =
-  maybe (return $ Just "no authentication token defined", w)
-  (\ t -> let r = deleteJSONWith (authorisation t) (toURI $ domainsEndpoint </> show name </> "records" </> show rid ) (toJSON ()) >> return Nothing
+  maybe (errMissingToken, w)
+  (\ t -> let r = deleteJSONWith (authorisation t) (toURI $ domainsEndpoint </> show name </> "records" </> show rid ) (toJSON ()) >> return (Right ())
           in (r, w))
   (authToken (ask w))
 
