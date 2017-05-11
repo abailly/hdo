@@ -20,6 +20,7 @@ import           Data.Monoid       ((<>))
 import           Data.Text         (pack, unpack)
 import           Data.Time         (UTCTime)
 import           GHC.Generics
+import           GHC.Exts          (toList)
 import qualified Text.Parsec       as P
 
 type AuthToken = String
@@ -611,5 +612,135 @@ instance FromJSON IPActionType where
   parseJSON v          = failParse v
 
 
+-- | Type of Resources
+data ResourceType
+  = ResourceDroplet
+  | ResourceVolume
+  | ResourceBackend
+  deriving (Eq, Ord, Enum)
+
+resourceTypes :: [String]
+resourceTypes = ["droplet", "volume", "backend"]
+
+instance Show ResourceType where
+  show r = resourceTypes !! fromEnum r
+
+instance FromJSON ResourceType where
+  parseJSON (String v) =
+    case elemIndex (unpack v) resourceTypes of
+      Just i ->
+        return $ toEnum i
+      Nothing ->
+        failParse ("cannot parse " <> v)
+
+  parseJSON e = failParse e
+
+instance ToJSON ResourceType where
+  toJSON = toJSON . show
+
+-- | Type of Block Storage (Volume)
+--
+-- https://developers.digitalocean.com/documentation/v2/#block-storage
+data Volume = Volume
+  { volumeId            :: Id      -- ^ The unique identifier for the Block Storage Volume.
+  , volumeRegion        :: Region  -- ^ The region that the Block Storage Volume is located in.
+  , volumeDropletIds    :: [Id]    -- ^ An array containing the IDs of the Droplets the volume is attached to.
+  , volumeName          :: String  -- ^ A human-redable name for the Block Storage Volume.
+  , volumeDescription   :: String  -- ^ An optional free-form text field to describe a Block Storage Volume.
+  , volumeSizeGigaBytes :: Int     -- ^ The size of the Block Storage Volume in GiB (1024^3)
+  , volumeCreatedAt     :: Date    -- ^ A time value that represents when the Block Storage Volume was created.
+  } deriving (Show)
+
+instance FromJSON Volume where
+  parseJSON (Object o) = Volume
+                         <$> o .: "id"
+                         <*> o .: "region"
+                         <*> o .: "droplet_ids"
+                         <*> o .: "name"
+                         <*> o .: "description"
+                         <*> o .: "size_gigabytes"
+                         <*> o .: "created_at"
+
+  parseJSON e          = failParse e
+
+-- | Type of Tags
+--
+-- https://developers.digitalocean.com/documentation/v2/#tags
+
+data Tag = Tag
+  { tagName      :: String        -- ^ The tag name
+  , tagResources :: TagResources  -- ^ An embedded object containing key value pairs of resource type and resource statistics
+  } deriving (Show)
+
+data TagResources = TagResources
+  { tagDroplets :: TagDroplets  -- ^ Statistics about the droplets resources
+  , tagVolumes  :: TagVolumes   -- ^ Statistics about the volumes resources
+  -- NOTE backend resources seem to exist too but I can't find any representation of them :|
+  } deriving (Show)
+
+data TagDroplets = TagDroplets
+  { tagDropletsCount      :: Int            -- ^ The number of tagged droplets
+  , tagDropletsLastTagged :: Maybe Droplet  -- ^ The last tagged droplet
+  } deriving (Show)
+
+data TagVolumes = TagVolumes
+  { tagVolumesCount      :: Int           -- ^ The number of tagged volumes
+  , tagVolumesLastTagged :: Maybe Volume  -- ^ The last tagged volume
+  } deriving (Show)
+
+data TagPairs = TagPairs
+  { tagPairsResources :: [TagPair] -- ^ An array of objects containing resource_id and resource_type attributes
+  } deriving (Show)
+
+data TagPair = TagPair
+  { tagPairResourceId   :: Id            -- ^ The identifier of a resource
+  , tagPairResourceType :: ResourceType  -- ^ The type of the resource
+  } deriving (Show)
+
+
+instance FromJSON Tag where
+  parseJSON (Object o) = Tag
+                         <$> o .: "name"
+                         <*> o .: "resources"
+
+  parseJSON e          = failParse e
+
+instance FromJSON TagResources where
+  parseJSON (Object o) = TagResources
+                         <$> o .:? "droplets" .!= TagDroplets 0 Nothing
+                         <*> o .:? "volumes"  .!= TagVolumes  0 Nothing
+
+  parseJSON e          = failParse e
+
+instance FromJSON TagDroplets where
+  parseJSON (Object o) = TagDroplets
+                         <$> o .:  "count"
+                         <*> o .:? "last_tagged"
+
+  parseJSON e          = failParse e
+
+instance FromJSON TagVolumes where
+  parseJSON (Object o) = TagVolumes
+                         <$> o .:  "count"
+                         <*> o .:? "last_tagged"
+
+  parseJSON e          = failParse e
+
+instance FromJSON TagPairs where
+  parseJSON (Array a) = TagPairs
+                        <$> fmap toList (traverse parseJSON a)
+
+  parseJSON e         = failParse e
+
+instance FromJSON TagPair where
+  parseJSON (Object o) = TagPair
+                         <$> o .: "resource_id"
+                         <*> o .: "resource_type"
+
+  parseJSON e          = failParse e
+
+
+-- Utility
+--
 failParse :: (Show a1, Monad m) => a1 -> m a
 failParse e = fail $ "cannot parse " <> show e
