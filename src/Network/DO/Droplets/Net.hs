@@ -31,7 +31,7 @@ instance Listable Droplet where
 doListSnapshots :: (ComonadEnv ToolConfiguration w, Monad m) => w a -> Id -> (RESTT m (Result [Image]), w a)
 doListSnapshots w dropletId =
   maybe (errMissingToken, w)
-  (\ t -> let snapshots = Right . toList "snapshots" <$> getJSONWith (authorisation t) (toURI $ dropletsEndpoint </> show dropletId </> "snapshots")
+  (\ t -> let snapshots = toList "snapshots" <$> getJSONWith (authorisation t) (toURI $ dropletsEndpoint </> show dropletId </> "snapshots")
           in (snapshots, w))
   (authToken (ask w))
 

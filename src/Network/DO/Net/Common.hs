@@ -27,10 +27,17 @@ s </> s'        = s ++ "/" ++ s'
 toURI :: String -> URI
 toURI s = maybe (P.error $ "cannot parse URI from " ++ s) id $ parseURI s
 
-toList :: (FromJSON a) => Text -> Value -> [a]
-toList k (Object o) = let Array boxes = o  H.! k
-                      in mapMaybe (A.parseMaybe parseJSON) (V.toList boxes)
-toList _  _         = []
+toList :: (FromJSON a) => Text -> Value -> Result [a]
+toList k (Object o) = if H.member "message" o
+  then error . show $ o H.! "message"
+  else case H.lookup k o of
+    Just (Array boxes) ->
+      Right $ mapMaybe (A.parseMaybe parseJSON) (V.toList boxes)
+    _ ->
+      error $ "cannot decode JSON value to a list of " ++ show k
+
+toList k  _         =
+  error $ "cannot decode JSON value to a list of " ++ show k
 
 class Listable a where
   listEndpoint :: Proxy a -> String
@@ -38,7 +45,7 @@ class Listable a where
 
 queryList :: (ComonadEnv ToolConfiguration w, Monad m, Listable b, FromJSON b) => Proxy b -> w a -> (RESTT m (Result [b]), w a)
 queryList p w = maybe (errMissingToken, w)
-                (\ t -> let resources = Right . toList (listField p) <$> getJSONWith (authorisation t) (toURI (listEndpoint p))
+                (\ t -> let resources = toList (listField p) <$> getJSONWith (authorisation t) (toURI (listEndpoint p))
                         in (resources, w))
                 (authToken (ask w))
 
@@ -47,5 +54,11 @@ errMissingToken = return $ error "no authentication token defined"
 
 -- |Extract a typed result from a JSON output
 fromResponse :: (FromJSON a) => Text -> Either String Value -> Result a
-fromResponse key (Right (Object b)) = either error (Right . id) $ A.parseEither parseJSON (b H.! key)
-fromResponse _   v                  = error $ "cannot decode JSON value to a FloatingIP " ++ show v
+fromResponse key (Right (Object b)) = if H.member "message" b
+  then error . show $ (b H.! "message")
+  else case H.lookup key b of
+    Just val -> either error Right $ A.parseEither parseJSON val
+    _        -> error $ "cannot decode JSON value to a " ++ show key ++ ": " ++ show b
+
+fromResponse key v =
+  error $ "cannot decode JSON value to a " ++ show key ++ ": " ++ show v

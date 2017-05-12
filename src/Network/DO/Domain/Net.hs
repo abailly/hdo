@@ -51,7 +51,7 @@ doDeleteDomain w name = maybe (errMissingToken, w)
 
 doListRecords :: (ComonadEnv ToolConfiguration w, Monad m) => w a -> DomainName -> (RESTT m (Result [DomainRecord]), w a)
 doListRecords w name = maybe (errMissingToken, w)
-                       (\ t -> let records = Right . toList "domain_records" <$> getJSONWith (authorisation t) (toURI $ domainsEndpoint </> show name </> "records")
+                       (\ t -> let records = toList "domain_records" <$> getJSONWith (authorisation t) (toURI $ domainsEndpoint </> show name </> "records")
                          in (records, w))
                        (authToken (ask w))
 
