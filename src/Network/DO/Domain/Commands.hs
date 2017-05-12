@@ -10,10 +10,10 @@ import           Network.DO.Pairing
 import           Network.DO.Types
 import           Prelude                      as P
 
-data DomainCommands a = ListDomains ([Domain] -> a)
+data DomainCommands a = ListDomains (Result [Domain] -> a)
                       | CreateDomain DomainName IP (Result Domain -> a)
                       | DeleteDomain DomainName (Result () -> a)
-                      | ListRecords DomainName ([DomainRecord] -> a)
+                      | ListRecords DomainName (Result [DomainRecord] -> a)
                       | CreateRecord DomainName DomainRecord (Result DomainRecord -> a)
                       | DeleteRecord DomainName Id (Result () -> a)
                       deriving (Functor)
@@ -21,7 +21,7 @@ data DomainCommands a = ListDomains ([Domain] -> a)
 type DomainCommandsT = FreeT DomainCommands
 
 -- smart constructors
-listDomains :: DomainCommands [Domain]
+listDomains :: DomainCommands (Result [Domain])
 listDomains = ListDomains P.id
 
 createDomain :: DomainName -> IP -> DomainCommands (Result Domain)
@@ -30,7 +30,7 @@ createDomain dname ip = CreateDomain dname ip P.id
 deleteDomain :: DomainName -> DomainCommands (Result ())
 deleteDomain ip = DeleteDomain ip P.id
 
-listRecords :: DomainName -> DomainCommands [DomainRecord]
+listRecords :: DomainName -> DomainCommands (Result [DomainRecord])
 listRecords n = ListRecords n P.id
 
 createRecord :: DomainName -> DomainRecord -> DomainCommands (Result DomainRecord)
@@ -41,10 +41,10 @@ deleteRecord dname rid = DeleteRecord dname rid P.id
 
 -- dual type, for creating interpreters
 data CoDomainCommands m k =
-  CoDomainCommands { listDomainsH  :: (m [Domain], k)
+  CoDomainCommands { listDomainsH  :: (m (Result [Domain]), k)
                    , createDomainH :: DomainName -> IP -> (m (Result Domain), k)
                    , deleteDomainH :: DomainName -> (m (Result ()), k)
-                   , listRecordsH  :: DomainName -> (m [DomainRecord], k)
+                   , listRecordsH  :: DomainName -> (m (Result [DomainRecord]), k)
                    , createRecordH :: DomainName -> DomainRecord -> (m (Result DomainRecord), k)
                    , deleteRecordH :: DomainName -> Id -> (m (Result ()), k)
                    } deriving Functor

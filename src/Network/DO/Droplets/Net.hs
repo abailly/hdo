@@ -28,9 +28,9 @@ instance Listable Droplet where
   listEndpoint _ = dropletsEndpoint
   listField _    = "droplets"
 
-doListSnapshots :: (ComonadEnv ToolConfiguration w, Monad m) => w a -> Id -> (RESTT m [Image], w a)
+doListSnapshots :: (ComonadEnv ToolConfiguration w, Monad m) => w a -> Id -> (RESTT m (Result [Image]), w a)
 doListSnapshots w dropletId =
-  maybe (return [], w)
+  maybe (errMissingToken, w)
   (\ t -> let snapshots = toList "snapshots" <$> getJSONWith (authorisation t) (toURI $ dropletsEndpoint </> show dropletId </> "snapshots")
           in (snapshots, w))
   (authToken (ask w))

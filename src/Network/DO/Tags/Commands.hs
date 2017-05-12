@@ -21,7 +21,7 @@ import Network.DO.Types hiding (TagResources, tagResources, name)
 data TagsCommands a = CreateTag TagName (Result Tag -> a)
                     | RetrieveTag TagName (Result Tag -> a)
                     | DeleteTag TagName (Result () -> a)
-                    | ListTags ([Tag] -> a)
+                    | ListTags (Result [Tag] -> a)
                     | TagResources TagName TagPairs (Result () -> a)
                     | UntagResources TagName TagPairs (Result () -> a)
                     deriving (Functor)
@@ -39,7 +39,7 @@ retrieveTag name = RetrieveTag name Prelude.id
 deleteTag :: TagName -> TagsCommands (Result ())
 deleteTag name = DeleteTag name Prelude.id
 
-listTags :: TagsCommands [Tag]
+listTags :: TagsCommands (Result [Tag])
 listTags = ListTags Prelude.id
 
 tagResources :: TagName -> TagPairs -> TagsCommands (Result ())
@@ -52,7 +52,7 @@ untagResources name pairs = TagResources name pairs Prelude.id
 data CoTagsCommands m k = CoTagsCommands { createTagH      :: TagName -> (m (Result Tag), k)
                                          , retrieveTagH    :: TagName -> (m (Result Tag), k)
                                          , deleteTagH      :: TagName -> (m (Result ()), k)
-                                         , listTagsH       :: (m [Tag], k)
+                                         , listTagsH       :: (m (Result [Tag]), k)
                                          , tagResourcesH   :: TagName -> TagPairs -> (m (Result ()), k)
                                          , untagResourcesH :: TagName -> TagPairs -> (m (Result ()), k)
                                          } deriving Functor
