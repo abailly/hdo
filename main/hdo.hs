@@ -97,10 +97,11 @@ parseCommandOptions ("droplets":dropletId:[])
                                                          = showDroplet (P.read dropletId) >>= outputResult
 parseCommandOptions ("droplets":"ssh":dropletIdOrName:[])
                                                          =  (do
-                                                                droplets <- findByIdOrName dropletIdOrName <$> listDroplets
-                                                                case droplets of
-                                                                 (did:_) -> dropletConsole did
-                                                                 []      -> return (error $ "no droplet with id or name " <> dropletIdOrName)
+                                                               droplets <- fmap (findByIdOrName dropletIdOrName) <$> listDroplets
+                                                               case droplets of
+                                                                 Right (did:_) -> dropletConsole did
+                                                                 Right []      -> return $ error ("no droplet with id or name " <> dropletIdOrName)
+                                                                 Left err      -> return $ Left err
                                                             ) >>= outputResult
 
 parseCommandOptions ("images":"list":_)                  = listImages >>= outputResult
@@ -110,7 +111,7 @@ parseCommandOptions ("sizes":"list":_)                   = listSizes >>= outputR
 
 parseCommandOptions ("ips":"list":_)                     = listFloatingIPs >>= outputResult
 parseCommandOptions ("ips":"create":dropletOrRegion:[])  = do
-  regions <- listRegions
+  regions <- either (const []) id <$> listRegions
   outputResult =<< if dropletOrRegion `elem` map regionSlug regions
     then createFloatingIP (TargetRegion dropletOrRegion)
     else createFloatingIP (TargetDroplet $ read dropletOrRegion)

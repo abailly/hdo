@@ -10,33 +10,33 @@ import           Network.DO.Types
 import           Prelude                      as P
 
 -- functor for DO DSL
-data DO a = ListKeys ([Key] -> a)
-          | ListSizes ([Size] -> a)
-          | ListImages ([Image] -> a)
-          | ListRegions ([Region] -> a)
+data DO a = ListKeys (Result [Key] -> a)
+          | ListSizes (Result [Size] -> a)
+          | ListImages (Result [Image] -> a)
+          | ListRegions (Result [Region] -> a)
           deriving (Functor)
 
 -- free transformer to embed effects
 type DOT = FreeT DO
 
 -- smart constructors
-listKeys :: DO [Key]
+listKeys :: DO (Result [Key])
 listKeys = ListKeys P.id
 
-listSizes :: DO [Size]
+listSizes :: DO (Result [Size])
 listSizes = ListSizes P.id
 
-listImages  :: DO [Image]
+listImages  :: DO (Result [Image])
 listImages = ListImages P.id
 
-listRegions :: DO [Region]
+listRegions :: DO (Result [Region])
 listRegions = ListRegions P.id
 
 -- dual type, for creating interpreters
-data CoDO m k = CoDO { listKeysH    :: (m [Key], k)
-                     , listSizesH   :: (m [Size], k)
-                     , listImagesH  :: (m [Image], k)
-                     , listRegionsH :: (m [Region], k)
+data CoDO m k = CoDO { listKeysH    :: (m (Result [Key]), k)
+                     , listSizesH   :: (m (Result [Size]), k)
+                     , listImagesH  :: (m (Result [Image]), k)
+                     , listRegionsH :: (m (Result [Region]), k)
                      } deriving Functor
 
 -- Cofree closure of CoDO functor

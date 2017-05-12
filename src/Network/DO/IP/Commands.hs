@@ -11,7 +11,7 @@ import           Network.DO.Types
 import           Prelude                      as P
 
 -- functor for DO DSL
-data IPCommands a = ListFloatingIPs ([FloatingIP] -> a)
+data IPCommands a = ListFloatingIPs (Result [FloatingIP] -> a)
                   | CreateIP FloatingIPTarget (Result FloatingIP -> a)
                   | DeleteIP IP (Result () -> a)
                   | ActionIP IP IPAction (Result (ActionResult IPActionType) -> a)
@@ -21,7 +21,7 @@ data IPCommands a = ListFloatingIPs ([FloatingIP] -> a)
 type IPCommandsT = FreeT IPCommands
 
 -- smart constructors
-listFloatingIPs :: IPCommands [FloatingIP]
+listFloatingIPs :: IPCommands (Result [FloatingIP])
 listFloatingIPs = ListFloatingIPs P.id
 
 createFloatingIP :: FloatingIPTarget -> IPCommands (Result FloatingIP)
@@ -35,7 +35,7 @@ floatingIPAction ip action = ActionIP ip action P.id
 
 -- dual type, for creating interpreters
 data CoIPCommands m k =
-  CoIPCommands { listFloatingIPsH  :: (m [FloatingIP], k)
+  CoIPCommands { listFloatingIPsH  :: (m (Result [FloatingIP]), k)
                , createFloatingIPH :: FloatingIPTarget -> (m (Result FloatingIP), k)
                , deleteIPH         :: IP -> (m (Result ()), k)
                , actionIPH         :: IP -> IPAction -> (m (Result (ActionResult IPActionType)), k)

@@ -15,12 +15,12 @@ import           Network.DO.Types
 import           Prelude                      as P
 
 -- | Available commands for droplets
-data DropletCommands a = ListDroplets ([Droplet] -> a)
+data DropletCommands a = ListDroplets (Result [Droplet] -> a)
                        | CreateDroplet BoxConfiguration (Result Droplet -> a)
                        | DestroyDroplet Id (Result () -> a)
                        | DropletAction Id Action (Result (ActionResult DropletActionType) -> a)
                        | GetAction Id Id (Result (ActionResult DropletActionType) -> a)
-                       | ListSnapshots Id ([Image] -> a)
+                       | ListSnapshots Id (Result [Image] -> a)
                        | Console Droplet (Result () -> a)
                        | ShowDroplet Id (Result Droplet -> a)
                        deriving (Functor)
@@ -29,7 +29,7 @@ data DropletCommands a = ListDroplets ([Droplet] -> a)
 type DropletCommandsT = FreeT DropletCommands
 
 -- smart constructors
-listDroplets :: DropletCommands [Droplet]
+listDroplets :: DropletCommands (Result [Droplet])
 listDroplets = ListDroplets P.id
 
 createDroplet :: BoxConfiguration -> DropletCommands (Result Droplet)
@@ -50,17 +50,17 @@ dropletConsole droplet = Console droplet P.id
 getAction :: Id -> Id -> DropletCommands (Result (ActionResult DropletActionType))
 getAction did actId = GetAction did actId P.id
 
-listDropletSnapshots :: Id -> DropletCommands [Image]
+listDropletSnapshots :: Id -> DropletCommands (Result [Image])
 listDropletSnapshots did = ListSnapshots did P.id
 
 
 -- | Comonadic interpreter for @DropletCommands@
-data CoDropletCommands m k = CoDropletCommands { listDropletsH   :: (m [Droplet], k)
+data CoDropletCommands m k = CoDropletCommands { listDropletsH   :: (m (Result [Droplet]), k)
                                                , createDropletH  :: BoxConfiguration -> (m (Result Droplet), k)
                                                , destroyDropletH :: Id -> (m (Result ()), k)
                                                , actionDropletH  :: Id -> Action -> (m (Result (ActionResult DropletActionType)), k)
                                                , getActionH      :: Id -> Id -> (m (Result (ActionResult DropletActionType)), k)
-                                               , listSnapshotsH  :: Id -> (m [Image], k)
+                                               , listSnapshotsH  :: Id -> (m (Result [Image]), k)
                                                , consoleH        :: Droplet -> (m (Result ()), k)
                                                , showDropletH    :: Id -> (m (Result Droplet), k)
                                                } deriving Functor

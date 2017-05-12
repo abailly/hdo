@@ -36,9 +36,9 @@ class Listable a where
   listEndpoint :: Proxy a -> String
   listField :: Proxy a -> Text
 
-queryList :: (ComonadEnv ToolConfiguration w, Monad m, Listable b, FromJSON b) => Proxy b -> w a -> (RESTT m [b], w a)
-queryList p w = maybe (return [], w)
-                (\ t -> let resources = toList (listField p) <$> getJSONWith (authorisation t) (toURI (listEndpoint p))
+queryList :: (ComonadEnv ToolConfiguration w, Monad m, Listable b, FromJSON b) => Proxy b -> w a -> (RESTT m (Result [b]), w a)
+queryList p w = maybe (errMissingToken, w)
+                (\ t -> let resources = Right . toList (listField p) <$> getJSONWith (authorisation t) (toURI (listEndpoint p))
                         in (resources, w))
                 (authToken (ask w))
 
