@@ -12,10 +12,10 @@ import           Prelude                      as P
 
 data DomainCommands a = ListDomains ([Domain] -> a)
                       | CreateDomain DomainName IP (Result Domain -> a)
-                      | DeleteDomain DomainName (Maybe String -> a)
+                      | DeleteDomain DomainName (Result () -> a)
                       | ListRecords DomainName ([DomainRecord] -> a)
                       | CreateRecord DomainName DomainRecord (Result DomainRecord -> a)
-                      | DeleteRecord DomainName Id (Maybe String -> a)
+                      | DeleteRecord DomainName Id (Result () -> a)
                       deriving (Functor)
 
 type DomainCommandsT = FreeT DomainCommands
@@ -27,7 +27,7 @@ listDomains = ListDomains P.id
 createDomain :: DomainName -> IP -> DomainCommands (Result Domain)
 createDomain dname ip = CreateDomain dname ip P.id
 
-deleteDomain :: DomainName -> DomainCommands (Maybe String)
+deleteDomain :: DomainName -> DomainCommands (Result ())
 deleteDomain ip = DeleteDomain ip P.id
 
 listRecords :: DomainName -> DomainCommands [DomainRecord]
@@ -36,17 +36,17 @@ listRecords n = ListRecords n P.id
 createRecord :: DomainName -> DomainRecord -> DomainCommands (Result DomainRecord)
 createRecord dname record = CreateRecord dname record P.id
 
-deleteRecord :: DomainName -> Id -> DomainCommands (Maybe String)
+deleteRecord :: DomainName -> Id -> DomainCommands (Result ())
 deleteRecord dname rid = DeleteRecord dname rid P.id
 
 -- dual type, for creating interpreters
 data CoDomainCommands m k =
   CoDomainCommands { listDomainsH  :: (m [Domain], k)
                    , createDomainH :: DomainName -> IP -> (m (Result Domain), k)
-                   , deleteDomainH :: DomainName -> (m (Maybe String), k)
+                   , deleteDomainH :: DomainName -> (m (Result ()), k)
                    , listRecordsH  :: DomainName -> (m [DomainRecord], k)
                    , createRecordH :: DomainName -> DomainRecord -> (m (Result DomainRecord), k)
-                   , deleteRecordH :: DomainName -> Id -> (m (Maybe String), k)
+                   , deleteRecordH :: DomainName -> Id -> (m (Result ()), k)
                    } deriving Functor
 
 -- Cofree closure of CoDomainCommands functor

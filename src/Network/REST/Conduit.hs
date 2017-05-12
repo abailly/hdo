@@ -70,10 +70,10 @@ runConduit debug r = do
         let value = getResponseBody response :: Value
         runConduit debug (k value)
 
-      step (Free (DeleteWith opts uri k)) = do
+      step (Free (DeleteWith opts uri val k)) = do
         request <- parseRequest $ "DELETE " ++ asString uri
-        debugRequest debug (RequestLog request)
-        void $ httpLBS $ options opts request
+        debugRequest debug (RequestLogWithBody request (Body val))
+        void $ httpLBS $ options opts $ setRequestBodyJSON val request
         runConduit debug k
 
       step (Free (Post uri val k)) = do

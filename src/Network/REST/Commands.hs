@@ -23,7 +23,7 @@ data REST a = Get URI (Value -> a)
            | WaitFor Int String a
            | GetWith Options URI (Value -> a)
            | PostWith Options URI Value (Either String Value -> a)
-           | DeleteWith Options URI a
+           | DeleteWith Options URI Value a
            deriving (Functor)
 
 type RESTT = FreeT REST
@@ -41,8 +41,8 @@ postJSON uri json = liftF $ Post uri json id
 postJSONWith :: (Monad m) => Options ->  URI -> Value -> RESTT m (Either String Value)
 postJSONWith opts uri json = liftF $ PostWith opts uri json id
 
-deleteJSONWith :: (Monad m) => Options -> URI -> RESTT m ()
-deleteJSONWith opts uri = liftF $ DeleteWith opts uri ()
+deleteJSONWith :: (Monad m) => Options -> URI -> Value -> RESTT m ()
+deleteJSONWith opts uri json = liftF $ DeleteWith opts uri json ()
 
 waitFor :: (Monad m) => Int -> String -> RESTT m ()
 waitFor delay message = liftF $ WaitFor delay message ()

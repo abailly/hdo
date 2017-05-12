@@ -38,9 +38,12 @@ class Listable a where
 
 queryList :: (ComonadEnv ToolConfiguration w, Monad m, Listable b, FromJSON b) => Proxy b -> w a -> (RESTT m [b], w a)
 queryList p w = maybe (return [], w)
-                (\ t -> let droplets = toList (listField p) <$> getJSONWith (authorisation t) (toURI (listEndpoint p))
-                        in (droplets, w))
+                (\ t -> let resources = toList (listField p) <$> getJSONWith (authorisation t) (toURI (listEndpoint p))
+                        in (resources, w))
                 (authToken (ask w))
+
+errMissingToken :: (Monad m) => m (Result a)
+errMissingToken = return $ error "no authentication token defined"
 
 -- |Extract a typed result from a JSON output
 fromResponse :: (FromJSON a) => Text -> Either String Value -> Result a

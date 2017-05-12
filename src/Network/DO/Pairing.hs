@@ -19,6 +19,7 @@ module Network.DO.Pairing (Pairing(..)
                , injr, injl
                , injrl, injrr
                , injrrl, injrrr
+               , injrrrl, injrrrr
                ) where
 
 import           Control.Comonad              (Comonad, extract)
@@ -80,6 +81,13 @@ injrrl = liftF . InR . InR . InL
 
 injrrr :: (Monad m, Functor f, Functor g, Functor h, Functor k) => k a -> FreeT (f :+: g :+: h :+: k) m a
 injrrr = liftF . InR . InR . InR
+
+injrrrl :: (Monad m, Functor f, Functor g, Functor h, Functor k, Functor l) => k a -> FreeT (f :+: g :+: h :+: k :+: l) m a
+injrrrl = liftF . InR . InR . InR . InL
+
+injrrrr :: (Monad m, Functor f, Functor g, Functor h, Functor k, Functor l) => l a -> FreeT (f :+: g :+: h :+: k :+: l) m a
+injrrrr = liftF . InR . InR . InR . InR
+
 
 pairEffect :: (Pairing f g, Comonad w, Monad m)
            => (a -> b -> r) -> CofreeT f w a -> FreeT g m b -> m r

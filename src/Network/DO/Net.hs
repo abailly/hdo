@@ -23,6 +23,7 @@ import           Network.DO.Domain
 import           Network.DO.Droplets.Commands
 import           Network.DO.Droplets.Net
 import           Network.DO.IP
+import           Network.DO.Tags
 import           Network.DO.Net.Common
 import           Network.DO.Pairing
 import           Network.DO.Types             as DO hiding (URI)
@@ -79,7 +80,7 @@ genericCommands = CoDO
                   <*> queryList (Proxy :: Proxy Region)
 
 mkDOClient :: (MonadIO m) => ToolConfiguration
-           -> CofreeT (CoDO (RESTT m) :*: CoDropletCommands (RESTT m) :*: CoIPCommands (RESTT m) :*: CoDomainCommands (RESTT m)) (Env ToolConfiguration) (RESTT m ())
+           -> CofreeT (CoDO (RESTT m) :*: CoDropletCommands (RESTT m) :*: CoIPCommands (RESTT m) :*: CoDomainCommands (RESTT m) :*: CoTagsCommands (RESTT m)) (Env ToolConfiguration) (RESTT m ())
 mkDOClient config = coiterT next start
   where
     next = Pair
@@ -88,7 +89,10 @@ mkDOClient config = coiterT next start
                  <$> dropletCommandsInterpreter
                  <*> (Pair
                       <$> ipCommandsInterpreter
-                      <*> dnsCommandsInterpreter
+                      <*> (Pair
+                           <$> dnsCommandsInterpreter
+                           <*> tagsCommandsInterpreter
+                          )
                      )
                )
     start = env config (return ())

@@ -32,22 +32,22 @@ instance Listable FloatingIP where
   listField _    = "floating_ips"
 
 doCreateIP :: (ComonadEnv ToolConfiguration w, Monad m) => w a -> FloatingIPTarget -> (RESTT m (Result FloatingIP), w a)
-doCreateIP w config = maybe (return $ error "no authentication token defined", w)
+doCreateIP w config = maybe (errMissingToken, w)
   runQuery
   (authToken (ask w))
   where
-    runQuery t = let opts             = authorisation t
-                     ip               = postJSONWith opts (toURI floatingIpsEndpoint) (toJSON config) >>= return . fromResponse "floating_ip"
+    runQuery t = let opts = authorisation t
+                     ip   = postJSONWith opts (toURI floatingIpsEndpoint) (toJSON config) >>= return . fromResponse "floating_ip"
                  in (ip, w)
 
-doDeleteIP :: (ComonadEnv ToolConfiguration w, Monad m) => w a -> IP -> (RESTT m (Maybe String), w a)
-doDeleteIP w ip = maybe (return $ Just "no authentication token defined", w)
-                  (\ t -> let r = deleteJSONWith (authorisation t) (toURI $ floatingIpsEndpoint </> show ip) >> return Nothing
+doDeleteIP :: (ComonadEnv ToolConfiguration w, Monad m) => w a -> IP -> (RESTT m (Result ()), w a)
+doDeleteIP w ip = maybe (errMissingToken, w)
+                  (\ t -> let r = deleteJSONWith (authorisation t) (toURI $ floatingIpsEndpoint </> show ip) (toJSON ()) >> return (Right ())
                           in (r, w))
                   (authToken (ask w))
 
 doAction :: (ComonadEnv ToolConfiguration w, Monad m) => w a -> IP -> IPAction -> (RESTT m (Result (ActionResult IPActionType)), w a)
-doAction w ip action = maybe (return $ error "no authentication token defined", w)
+doAction w ip action = maybe (errMissingToken, w)
                        (\ t -> let r = postJSONWith (authorisation t) (toURI $ floatingIpsEndpoint </> show ip </> "actions") (toJSON action)
                                        >>= return . fromResponse "action"
                                in (r, w))

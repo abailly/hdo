@@ -102,10 +102,12 @@ parseCommandOptions ("droplets":"ssh":dropletIdOrName:[])
                                                                  (did:_) -> dropletConsole did
                                                                  []      -> return (error $ "no droplet with id or name " <> dropletIdOrName)
                                                             ) >>= outputResult
+
 parseCommandOptions ("images":"list":_)                  = listImages >>= outputResult
 parseCommandOptions ("regions":"list":_)                 = listRegions >>= outputResult
 parseCommandOptions ("keys":"list":_)                    = listKeys >>= outputResult
 parseCommandOptions ("sizes":"list":_)                   = listSizes >>= outputResult
+
 parseCommandOptions ("ips":"list":_)                     = listFloatingIPs >>= outputResult
 parseCommandOptions ("ips":"create":dropletOrRegion:[])  = do
   regions <- listRegions
@@ -115,6 +117,7 @@ parseCommandOptions ("ips":"create":dropletOrRegion:[])  = do
 parseCommandOptions ("ips":"delete":ip:[])     = deleteFloatingIP (P.read ip) >>= outputResult
 parseCommandOptions ("ips":ip:"assign":did:[]) = assignFloatingIP (P.read ip) (P.read did) >>= outputResult
 parseCommandOptions ("ips":ip:"unassign": [])  = unassignFloatingIP (P.read ip) >>= outputResult
+
 parseCommandOptions ("dns":"list":_)             = listDomains >>= outputResult
 parseCommandOptions ("dns":"create":name:ip:[])  = createDomain (P.read name) (P.read ip) >>= outputResult
 parseCommandOptions ("dns":"delete":name:[])     = deleteDomain (P.read name) >>= outputResult
@@ -124,4 +127,11 @@ parseCommandOptions ("dns":name:"create":rest)   =
     Left (Error e) -> fail e
     Right r        -> createRecord (P.read name) r >>= outputResult
 parseCommandOptions ("dns":name:"delete":rid:[]) = deleteRecord (P.read name) (P.read rid) >>= outputResult
+
+parseCommandOptions ("tags":"list":_) = listTags >>= outputResult
+parseCommandOptions ("tags":"create":name:[]) = createTag name >>= outputResult
+parseCommandOptions ("tags":"delete":name:[]) = deleteTag name >>= outputResult
+parseCommandOptions ("tags":"tag":name:rid:rtype:[]) = tagResources name (TagPairs [TagPair (P.read rid) (P.read rtype)]) >>= outputResult
+parseCommandOptions ("tags":"untag":name:rid:rtype:[]) = untagResources name (TagPairs [TagPair (P.read rid) (P.read rtype)]) >>= outputResult
+
 parseCommandOptions e                          = fail $ "I don't know how to interpret commands " ++ unwords e ++ "\n" ++ usage

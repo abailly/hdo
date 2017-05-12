@@ -13,9 +13,10 @@ module Network.DO.Types where
 import           Data.Aeson        as A hiding (Error, Result)
 import           Data.Aeson.Types  as A hiding (Error, Result)
 import           Data.Default
+import           Data.Maybe        (isNothing)
 import qualified Data.HashMap.Lazy as H
 import           Data.IP
-import           Data.List         (elemIndex)
+import           Data.List         (elemIndex, concat)
 import           Data.Monoid       ((<>))
 import           Data.Text         (pack, unpack)
 import           Data.Time         (UTCTime)
@@ -156,11 +157,18 @@ instance FromJSON (Bytes Giga) where
   parseJSON (Number n) = jsonBytes (truncate n)
   parseJSON e          = failParse e
 
+instance ToJSON (Bytes a) where
+  toJSON Bytes{..} = toJSON bytesSize
+
+
 newtype Date = Date { theDate :: UTCTime } deriving Show
 
 instance FromJSON Date where
   parseJSON d@(String _) = Date <$> parseJSON d
   parseJSON e            = failParse e
+
+instance ToJSON Date where
+  toJSON Date{..} = toJSON theDate
 
 data Status = New
             | Active
@@ -170,12 +178,19 @@ data Status = New
 
 instance FromJSON Status where
   parseJSON (String s) = case s of
-                          "new" -> return New
-                          "active" -> return Active
-                          "off" -> return Off
-                          "archive" -> return Archive
-                          _        -> fail $ "cannot parse " <> unpack s
+                          "new"      -> return New
+                          "active"   -> return Active
+                          "off"      -> return Off
+                          "archive"  -> return Archive
+                          _          -> fail $ "cannot parse " <> unpack s
   parseJSON e          = failParse e
+
+instance ToJSON Status where
+  toJSON New     = "new"
+  toJSON Active  = "active"
+  toJSON Off     = "off"
+  toJSON Archive = "archive"
+
 
 data NetType = Public | Private deriving (Show, Eq)
 
@@ -209,6 +224,10 @@ instance FromJSON NetType where
                           e         -> failParse e
   parseJSON e          = failParse e
 
+instance ToJSON NetType where
+  toJSON Public  = "public"
+  toJSON Private = "private"
+
 data V4
 data V6
 
@@ -219,13 +238,28 @@ jsonNetwork f n = f
                   <*> (n .: "gateway")
                   <*> (n .: "type")
 
+toJsonNetwork :: (ToJSON netmask) => IP -> netmask -> IP -> NetType -> Value
+toJsonNetwork ip_address netmask gateway netType = object [ "ip_address" .= ip_address
+                                                          , "netmask"    .= netmask
+                                                          , "gateway"    .= gateway
+                                                          , "type"       .= netType
+                                                          ]
+
 instance FromJSON (Network V4) where
   parseJSON (Object n) = jsonNetwork NetworkV4 n
   parseJSON e          = failParse e
 
+instance ToJSON (Network V4) where
+  toJSON NetworkV4{..} = toJsonNetwork ip_address netmask gateway netType
+  toJSON NetworkV6{..} = toJsonNetwork ip_address netmask_v6 gateway netType
+
 instance FromJSON (Network V6) where
   parseJSON (Object n) = jsonNetwork NetworkV6 n
   parseJSON e          = fail $ "cannot parse network v6 " <> show e
+
+instance ToJSON (Network V6) where
+  toJSON NetworkV4{..} = toJsonNetwork ip_address netmask gateway netType
+  toJSON NetworkV6{..} = toJsonNetwork ip_address netmask_v6 gateway netType
 
 
 -- | Type of Networks configured for a @Droplet@
@@ -245,6 +279,12 @@ instance FromJSON Networks where
                               <$> (n .: "v4")
                               <*> (n .: "v6")
   parseJSON e          = fail $ "cannot parse network v6 " <> show e
+
+instance ToJSON Networks where
+  toJSON NoNetworks = Null
+  toJSON Networks{..} = object [ "v4" .= v4
+                               , "v6" .= v6
+                               ]
 
 -- | (Partial) Type of Droplets
 --
@@ -280,6 +320,22 @@ instance FromJSON Droplet where
                          <*> o .: "size_slug"
                          <*> o .: "networks"
   parseJSON e          = fail $ "cannot parse network v6 " <> show e
+
+instance ToJSON Droplet where
+  toJSON Droplet{..} = object [ "id"           .= dropletId
+                              , "name"         .= name
+                              , "memory"       .= memory
+                              , "vcpus"        .= vcpus
+                              , "disk"         .= disk
+                              , "locked"       .= locked
+                              , "created_at"   .= created_at
+                              , "status"       .= status
+                              , "backup_ids"   .= backup_ids
+                              , "snapshot_ids" .= snapshot_ids
+                              , "region"       .= region
+                              , "size_slug"    .= size_slug
+                              , "networks"     .= networks
+                              ]
 
 
 data ImageType = Snapshot
@@ -611,5 +667,183 @@ instance FromJSON IPActionType where
   parseJSON v          = failParse v
 
 
+-- | Type of Resources
+data ResourceType
+  = ResourceDroplet
+  | ResourceVolume
+  | ResourceBackend
+  deriving (Eq, Ord, Enum)
+
+resourceTypes :: [String]
+resourceTypes = ["droplet", "volume", "backend"]
+
+instance Show ResourceType where
+  show r = resourceTypes !! fromEnum r
+
+instance Read ResourceType where
+  readsPrec _ sz = case elemIndex sz resourceTypes of
+                    Just i  -> return (toEnum i, "")
+                    Nothing -> fail $ "cannot parse " <> sz
+
+instance FromJSON ResourceType where
+  parseJSON (String v) =
+    case elemIndex (unpack v) resourceTypes of
+      Just i ->
+        return $ toEnum i
+      Nothing ->
+        failParse ("cannot parse " <> v)
+
+  parseJSON e = failParse e
+
+instance ToJSON ResourceType where
+  toJSON = toJSON . show
+
+-- | Type of Block Storage (Volume)
+--
+-- https://developers.digitalocean.com/documentation/v2/#block-storage
+data Volume = Volume
+  { volumeId            :: Id      -- ^ The unique identifier for the Block Storage Volume.
+  , volumeRegion        :: Region  -- ^ The region that the Block Storage Volume is located in.
+  , volumeDropletIds    :: [Id]    -- ^ An array containing the IDs of the Droplets the volume is attached to.
+  , volumeName          :: String  -- ^ A human-redable name for the Block Storage Volume.
+  , volumeDescription   :: String  -- ^ An optional free-form text field to describe a Block Storage Volume.
+  , volumeSizeGigaBytes :: Int     -- ^ The size of the Block Storage Volume in GiB (1024^3)
+  , volumeCreatedAt     :: Date    -- ^ A time value that represents when the Block Storage Volume was created.
+  } deriving (Show)
+
+instance FromJSON Volume where
+  parseJSON (Object o) = Volume
+                         <$> o .: "id"
+                         <*> o .: "region"
+                         <*> o .: "droplet_ids"
+                         <*> o .: "name"
+                         <*> o .: "description"
+                         <*> o .: "size_gigabytes"
+                         <*> o .: "created_at"
+
+  parseJSON e          = failParse e
+
+instance ToJSON Volume where
+  toJSON Volume{..} = object [ "id"             .= volumeId
+                             , "region"         .= volumeRegion
+                             , "droplet_ids"    .= volumeDropletIds
+                             , "name"           .= volumeName
+                             , "description"    .= volumeDescription
+                             , "size_gigabytes" .= volumeSizeGigaBytes
+                             , "created_at"     .= volumeSizeGigaBytes
+                             ]
+
+
+-- | Type of Tags
+--
+-- https://developers.digitalocean.com/documentation/v2/#tags
+
+type TagName = String
+
+data Tag = Tag
+  { tagName      :: TagName       -- ^ The tag name
+  , tagResources :: TagResources  -- ^ An embedded object containing key value pairs of resource type and resource statistics
+  } deriving (Show)
+
+data TagResources = TagResources
+  { tagDroplets :: TagDroplets  -- ^ Statistics about the droplets resources
+  , tagVolumes  :: TagVolumes   -- ^ Statistics about the volumes resources
+  -- NOTE backend resources seem to exist too but I can't find any representation of them :|
+  } deriving (Show)
+
+data TagDroplets = TagDroplets
+  { tagDropletsCount      :: Int            -- ^ The number of tagged droplets
+  , tagDropletsLastTagged :: Maybe Droplet  -- ^ The last tagged droplet
+  } deriving (Show)
+
+data TagVolumes = TagVolumes
+  { tagVolumesCount      :: Int           -- ^ The number of tagged volumes
+  , tagVolumesLastTagged :: Maybe Volume  -- ^ The last tagged volume
+  } deriving (Show)
+
+data TagPairs = TagPairs
+  { tagPairsResources :: [TagPair] -- ^ An array of objects containing resource_id and resource_type attributes
+  } deriving (Show)
+
+data TagPair = TagPair
+  { tagPairResourceId   :: Id            -- ^ The identifier of a resource
+  , tagPairResourceType :: ResourceType  -- ^ The type of the resource
+  } deriving (Show)
+
+
+instance FromJSON Tag where
+  parseJSON (Object o) = Tag
+                         <$> o .: "name"
+                         <*> o .: "resources"
+
+  parseJSON e          = failParse e
+
+instance FromJSON TagResources where
+  parseJSON (Object o) = TagResources
+                         <$> o .:? "droplets" .!= TagDroplets 0 Nothing
+                         <*> o .:? "volumes"  .!= TagVolumes  0 Nothing
+
+  parseJSON e          = failParse e
+
+instance FromJSON TagDroplets where
+  parseJSON (Object o) = TagDroplets
+                         <$> o .:  "count"
+                         <*> o .:? "last_tagged"
+
+  parseJSON e          = failParse e
+
+instance FromJSON TagVolumes where
+  parseJSON (Object o) = TagVolumes
+                         <$> o .:  "count"
+                         <*> o .:? "last_tagged"
+
+  parseJSON e          = failParse e
+
+instance FromJSON TagPairs where
+  parseJSON (Object o) = TagPairs
+                         <$> o .: "resources"
+
+  parseJSON e         = failParse e
+
+instance FromJSON TagPair where
+  parseJSON (Object o) = TagPair
+                         <$> o .: "resource_id"
+                         <*> o .: "resource_type"
+
+  parseJSON e          = failParse e
+
+instance ToJSON Tag where
+  toJSON Tag{..} = object [ "name"      .= tagName
+                          , "resources" .= tagResources
+                          ]
+
+instance ToJSON TagResources where
+  toJSON TagResources{..} = object $ concat
+    [ if isNothing (tagDropletsLastTagged tagDroplets) then [] else ["droplets" .= tagDroplets]
+    , if isNothing (tagVolumesLastTagged tagVolumes)   then [] else ["volumes"  .= tagVolumes]
+    ]
+
+instance ToJSON TagDroplets where
+  toJSON TagDroplets{..} = object [ "count"       .= tagDropletsCount
+                                  , "last_tagged" .= tagDropletsLastTagged
+                                  ]
+
+instance ToJSON TagVolumes where
+  toJSON TagVolumes{..} = object [ "count"       .= tagVolumesCount
+                                 , "last_tagged" .= tagVolumesLastTagged
+                                 ]
+
+instance ToJSON TagPairs where
+  toJSON TagPairs{..} = object [ "resouces" .= tagPairsResources
+                               ]
+
+instance ToJSON TagPair where
+  toJSON TagPair{..} = object [ "resource_id"   .= tagPairResourceId
+                              , "resource_type" .= tagPairResourceType
+                              ]
+
+
+-- Utility
+--
 failParse :: (Show a1, Monad m) => a1 -> m a
 failParse e = fail $ "cannot parse " <> show e
