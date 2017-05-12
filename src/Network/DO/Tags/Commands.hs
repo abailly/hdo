@@ -26,7 +26,7 @@ data TagsCommands a = CreateTag TagName (Result Tag -> a)
                     | UntagResources TagName TagPairs (Result () -> a)
                     deriving (Functor)
 
--- free transformer to embed effects
+-- | free transformer to embed effects
 type TagsCommandsT = FreeT TagsCommands
 
 -- smart constructors

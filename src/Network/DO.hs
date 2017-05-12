@@ -42,33 +42,19 @@ import qualified Network.DO.Tags.Commands     as C
 
 type Command w a = FreeT (C.DO :+: C.DropletCommands :+: C.IPCommands :+: C.DomainCommands :+: C.TagsCommands) (RESTT w) a
 
---
--- KEYS
---
+
 listKeys :: (Monad w) => Command w [Key]
 listKeys = injl C.listKeys
 
---
--- SIZES
---
 listSizes :: (Monad w) => Command w [Size]
 listSizes = injl C.listSizes
 
---
--- IMAGES
---
 listImages  :: (Monad w) => Command w  [Image]
 listImages = injl C.listImages
 
---
--- REGIONS
---
 listRegions :: (Monad w) => Command w [Region]
 listRegions = injl C.listRegions
 
---
--- FLOATING IPS
---
 listFloatingIPs :: (Monad w) => Command w [FloatingIP]
 listFloatingIPs = injrrl C.listFloatingIPs
 
@@ -84,9 +70,6 @@ assignFloatingIP ip did = injrrl $ C.floatingIPAction ip (AssignIP did)
 unassignFloatingIP :: (Monad w) => IP -> Command w (Result (ActionResult IPActionType))
 unassignFloatingIP ip = injrrl $ C.floatingIPAction ip UnassignIP
 
---
--- DOMAINS
---
 listDomains :: (Monad w) => Command w [Domain]
 listDomains = injrrrl C.listDomains
 
@@ -96,9 +79,6 @@ createDomain dname ip = injrrrl $ C.createDomain dname ip
 deleteDomain :: (Monad w) => DomainName -> Command w (Result ())
 deleteDomain = injrrrl . C.deleteDomain
 
---
--- RECORDS
---
 listRecords :: (Monad w) => DomainName -> Command w [DomainRecord]
 listRecords = injrrrl . C.listRecords
 
@@ -108,9 +88,6 @@ createRecord dname ip = injrrrl $ C.createRecord dname ip
 deleteRecord :: (Monad w) => DomainName -> Id -> Command w (Result ())
 deleteRecord dname rid = injrrrl $ C.deleteRecord dname rid
 
---
--- DROPLETS
---
 listDroplets :: (Monad w) => Command w [Droplet]
 listDroplets = injrl C.listDroplets
 
@@ -135,9 +112,6 @@ getAction  did = injrl . C.getAction did
 listDropletSnapshots :: (Monad w) => Id -> Command w [Image]
 listDropletSnapshots = injrl . C.listDropletSnapshots
 
---
--- TAGS
---
 listTags :: (Monad w) => Command w [Tag]
 listTags = injrrrr C.listTags
 

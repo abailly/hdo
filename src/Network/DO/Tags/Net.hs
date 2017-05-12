@@ -19,10 +19,11 @@ import Network.DO.Types             as DO hiding (URI, name)
 import Network.REST
 
 
--- Define some shortcut accessor
+-- | Resource identifier for tags
 tagsURI :: String
 tagsURI = "tags"
 
+-- | Root endpoint for tags
 tagsEndpoint :: String
 tagsEndpoint = rootURI </> apiVersion </> tagsURI
 
@@ -35,6 +36,7 @@ instance Listable Tag where
   listEndpoint _ = tagsEndpoint
   listField    _ = "tags"
 
+-- | Create a new Tag
 --
 -- https://developers.digitalocean.com/documentation/v2/#create-a-new-tag
 --
@@ -46,6 +48,7 @@ doCreateTag w name = maybe (errMissingToken, w) runQuery (authToken (ask w))
                      query = fromResponse "tag" <$> postJSONWith opts (toURI tagsEndpoint) body
                  in (query, w)
 
+-- | Retrieve a Tag
 --
 -- https://developers.digitalocean.com/documentation/v2/#retrieve-a-tag
 --
@@ -56,6 +59,7 @@ doRetrieveTag w name = maybe (errMissingToken, w) runQuery (authToken (ask w))
                      query = fromResponse "tag" . Right <$> getJSONWith opts (toURI $ tagsEndpoint </> name)
                  in (query, w)
 
+-- | Delete a Tag
 --
 -- https://developers.digitalocean.com/documentation/v2/#delete-a-tag
 --
@@ -67,6 +71,7 @@ doDeleteTag w name = maybe (errMissingToken, w) runQuery (authToken (ask w))
                      query = Right () <$ deleteJSONWith opts (toURI $ tagsEndpoint </> name) body
                  in (query, w)
 
+-- | Tag one or several other resources
 --
 -- https://developers.digitalocean.com/documentation/v2/#tag-a-resource
 --
@@ -78,6 +83,7 @@ doTagResources w name pairs = maybe (errMissingToken, w) runQuery (authToken (as
                      query = Right () <$ postJSONWith opts (toURI $ tagsEndpoint </> name </> "resources") body
                  in (query, w)
 
+-- | Untag one or several other resources
 --
 -- https://developers.digitalocean.com/documentation/v2/#untag-a-resource
 --
