@@ -46,7 +46,7 @@ tagResources :: TagName -> TagPairs -> TagsCommands (Result ())
 tagResources name pairs = TagResources name pairs Prelude.id
 
 untagResources :: TagName -> TagPairs -> TagsCommands (Result ())
-untagResources name pairs = TagResources name pairs Prelude.id
+untagResources name pairs = UntagResources name pairs Prelude.id
 
 -- | Comonadic interpreter for @Tagscommands@
 data CoTagsCommands m k = CoTagsCommands { createTagH      :: TagName -> (m (Result Tag), k)
