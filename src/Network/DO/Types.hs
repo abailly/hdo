@@ -834,7 +834,7 @@ instance ToJSON TagVolumes where
                                  ]
 
 instance ToJSON TagPairs where
-  toJSON TagPairs{..} = object [ "resouces" .= tagPairsResources
+  toJSON TagPairs{..} = object [ "resources" .= tagPairsResources
                                ]
 
 instance ToJSON TagPair where
