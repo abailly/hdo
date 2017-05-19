@@ -30,7 +30,7 @@ import           Network.DO.Names
 import           Network.DO.Net
 import           Network.DO.Pairing
 import           Network.DO.Pretty
-import           Network.DO.Types             hiding(name, tagResources)
+import           Network.DO.Types
 import           Network.REST
 import           System.Environment           (getEnv)
 import           System.IO.Error              (isDoesNotExistError)
@@ -125,10 +125,10 @@ deleteTag :: (Monad w) => TagName -> Command w (Result ())
 deleteTag = injrrrr . C.deleteTag
 
 tagResources :: (Monad w) => TagName -> TagPairs -> Command w (Result ())
-tagResources name = injrrrr . C.tagResources name
+tagResources n = injrrrr . C.tagResources n
 
 untagResources :: (Monad w) => TagName -> TagPairs -> Command w (Result ())
-untagResources name = injrrrr . C.untagResources name
+untagResources n = injrrrr . C.untagResources n
 
 
 
