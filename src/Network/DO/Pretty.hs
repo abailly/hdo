@@ -113,10 +113,10 @@ instance Pretty DNSType
 
 instance Pretty Tag where
   pretty Tag{..} = text tagName $$
-                   nest 5 (text "droplets" <+> (brackets $ int $ tagDropletsCount $ tagDroplets tagResources)) $$
-                   nest 10 (maybe (text "<none>") pretty (tagDropletsLastTagged $ tagDroplets tagResources)) $$
-                   nest 5 (text "volumes" <+> (brackets $ int $ tagVolumesCount $ tagVolumes tagResources))    $$
-                   nest 10 (maybe (text "<none>") pretty (tagVolumesLastTagged $ tagVolumes tagResources))
+                   nest 5 (text "droplets" <+> (brackets $ int $ tagDropletsCount $ tagDroplets tagResources_)) $$
+                   nest 10 (maybe (text "<none>") pretty (tagDropletsLastTagged $ tagDroplets tagResources_)) $$
+                   nest 5 (text "volumes" <+> (brackets $ int $ tagVolumesCount $ tagVolumes tagResources_))    $$
+                   nest 10 (maybe (text "<none>") pretty (tagVolumesLastTagged $ tagVolumes tagResources_))
 
 instance Pretty Volume where
   pretty Volume{..} = integer volumeId $$

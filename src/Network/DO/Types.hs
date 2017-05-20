@@ -741,8 +741,8 @@ instance ToJSON Volume where
 type TagName = String
 
 data Tag = Tag
-  { tagName      :: TagName       -- ^ The tag name
-  , tagResources :: TagResources  -- ^ An embedded object containing key value pairs of resource type and resource statistics
+  { tagName       :: TagName       -- ^ The tag name
+  , tagResources_ :: TagResources  -- ^ An embedded object containing key value pairs of resource type and resource statistics
   } deriving (Show)
 
 data TagResources = TagResources
@@ -814,7 +814,7 @@ instance FromJSON TagPair where
 
 instance ToJSON Tag where
   toJSON Tag{..} = object [ "name"      .= tagName
-                          , "resources" .= tagResources
+                          , "resources" .= tagResources_
                           ]
 
 instance ToJSON TagResources where
@@ -834,7 +834,7 @@ instance ToJSON TagVolumes where
                                  ]
 
 instance ToJSON TagPairs where
-  toJSON TagPairs{..} = object [ "resouces" .= tagPairsResources
+  toJSON TagPairs{..} = object [ "resources" .= tagPairsResources
                                ]
 
 instance ToJSON TagPair where
