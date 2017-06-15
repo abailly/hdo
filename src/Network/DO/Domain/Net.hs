@@ -11,15 +11,18 @@ module Network.DO.Domain.Net(dnsCommandsInterpreter) where
 import           Control.Applicative
 import           Control.Comonad.Env.Class  (ComonadEnv, ask)
 import           Control.Monad.Trans        (MonadIO)
-import           Data.Aeson                 as A hiding (Result)
+import           Data.Aeson                  as A hiding (Result)
+import           Data.ByteString.Char8       as B8
 import           Data.IP
 import           Data.Maybe
 import           Data.Proxy
 import           Network.DO.Domain.Commands
 import           Network.DO.Net.Common
-import           Network.DO.Types           as DO hiding (URI)
+import           Network.DO.Types            as DO hiding (URI)
+import           Network.HTTP.QueryString   (QueryString)
 import           Network.REST
-import           Prelude                    as P hiding (error)
+import           Prelude                     as P hiding (error)
+import qualified Network.HTTP.QueryString    as QS
 
 domainsURI :: String
 domainsURI = "domains"
@@ -49,9 +52,11 @@ doDeleteDomain w name = maybe (errMissingToken, w)
                           in (r, w))
                   (authToken (ask w))
 
-doListRecords :: (ComonadEnv ToolConfiguration w, Monad m) => w a -> DomainName -> (RESTT m (Result [DomainRecord]), w a)
-doListRecords w name = maybe (errMissingToken, w)
-                       (\ t -> let records = toList "domain_records" <$> getJSONWith (authorisation t) (toURI $ domainsEndpoint </> show name </> "records")
+doListRecords :: (ComonadEnv ToolConfiguration w, Monad m) => w a -> QueryString -> DomainName -> (RESTT m (Result [DomainRecord]), w a)
+doListRecords w qs name = maybe (errMissingToken, w)
+                       (\ t ->
+                         let uri     = toURI $ domainsEndpoint </> show name </> "records?" </> B8.unpack (QS.toString qs)
+                             records = toList "domain_records" <$> getJSONWith (authorisation t) uri
                          in (records, w))
                        (authToken (ask w))
 

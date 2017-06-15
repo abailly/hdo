@@ -10,18 +10,18 @@
 -- See https://developers.digitalocean.com/documentation/v2/
 module Network.DO.Types where
 
-import           Data.Aeson        as A hiding (Error, Result)
-import           Data.Aeson.Types  as A hiding (Error, Result)
+import           Data.Aeson         as A hiding (Error, Result)
+import           Data.Aeson.Types   as A hiding (Error, Result)
 import           Data.Default
 import           Data.Maybe        (isNothing)
-import qualified Data.HashMap.Lazy as H
+import qualified Data.HashMap.Lazy  as H
 import           Data.IP
 import           Data.List         (elemIndex, concat)
 import           Data.Monoid       ((<>))
 import           Data.Text         (pack, unpack)
 import           Data.Time         (UTCTime)
 import           GHC.Generics
-import qualified Text.Parsec       as P
+import qualified Text.Parsec        as P
 
 type AuthToken = String
 
