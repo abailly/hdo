@@ -27,6 +27,10 @@ apiVersion = "v2"
 s </> ('/': s') = s ++ s'
 s </> s'        = s ++ "/" ++ s'
 
+(<?>) :: String -> String -> String
+s <?> ('?': s') = s ++ s'
+s <?> s'        = s ++ "?" ++ s'
+
 toURI :: String -> URI
 toURI s = maybe (P.error $ "cannot parse URI from " ++ s) id $ parseURI s
 
@@ -49,7 +53,7 @@ class Listable a where
 queryList :: (ComonadEnv ToolConfiguration w, Monad m, Listable b, FromJSON b) => Proxy b -> w a -> QueryString -> (RESTT m (Result [b]), w a)
 queryList p w qs = maybe (errMissingToken, w)
                 (\ t ->
-                  let uri       = toURI $ listEndpoint p </> "?" </> B8.unpack (QS.toString qs)
+                  let uri       = toURI $ listEndpoint p <?> B8.unpack (QS.toString qs)
                       resources = toList (listField p) <$> getJSONWith (authorisation t) uri
                   in (resources, w))
                 (authToken (ask w))

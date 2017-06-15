@@ -35,7 +35,7 @@ doListSnapshots :: (ComonadEnv ToolConfiguration w, Monad m) => w a -> QueryStri
 doListSnapshots w qs dropletId =
   maybe (errMissingToken, w)
   (\ t -> let
-            uri = toURI $ dropletsEndpoint </> show dropletId </> "snapshots?" </> B8.unpack (QS.toString qs)
+            uri = toURI $ dropletsEndpoint </> show dropletId </> "snapshots" <?> B8.unpack (QS.toString qs)
             snapshots = toList "snapshots" <$> getJSONWith (authorisation t) uri
           in (snapshots, w))
   (authToken (ask w))
