@@ -7,36 +7,37 @@ import           Control.Comonad.Trans.Cofree
 import           Control.Monad.Trans.Free
 import           Network.DO.Pairing
 import           Network.DO.Types
+import           Network.HTTP.QueryString     (QueryString)
 import           Prelude                      as P
 
 -- functor for DO DSL
-data DO a = ListKeys (Result [Key] -> a)
-          | ListSizes (Result [Size] -> a)
-          | ListImages (Result [Image] -> a)
-          | ListRegions (Result [Region] -> a)
+data DO a = ListKeys QueryString (Result [Key] -> a)
+          | ListSizes QueryString (Result [Size] -> a)
+          | ListImages QueryString (Result [Image] -> a)
+          | ListRegions QueryString (Result [Region] -> a)
           deriving (Functor)
 
 -- free transformer to embed effects
 type DOT = FreeT DO
 
 -- smart constructors
-listKeys :: DO (Result [Key])
-listKeys = ListKeys P.id
+listKeys :: QueryString -> DO (Result [Key])
+listKeys q = ListKeys q P.id
 
-listSizes :: DO (Result [Size])
-listSizes = ListSizes P.id
+listSizes :: QueryString -> DO (Result [Size])
+listSizes q = ListSizes q P.id
 
-listImages  :: DO (Result [Image])
-listImages = ListImages P.id
+listImages :: QueryString -> DO (Result [Image])
+listImages q = ListImages q P.id
 
-listRegions :: DO (Result [Region])
-listRegions = ListRegions P.id
+listRegions :: QueryString -> DO (Result [Region])
+listRegions q = ListRegions q P.id
 
 -- dual type, for creating interpreters
-data CoDO m k = CoDO { listKeysH    :: (m (Result [Key]), k)
-                     , listSizesH   :: (m (Result [Size]), k)
-                     , listImagesH  :: (m (Result [Image]), k)
-                     , listRegionsH :: (m (Result [Region]), k)
+data CoDO m k = CoDO { listKeysH    :: QueryString -> (m (Result [Key]), k)
+                     , listSizesH   :: QueryString -> (m (Result [Size]), k)
+                     , listImagesH  :: QueryString -> (m (Result [Image]), k)
+                     , listRegionsH :: QueryString -> (m (Result [Region]), k)
                      } deriving Functor
 
 -- Cofree closure of CoDO functor
@@ -44,7 +45,7 @@ type CoDOT m = CofreeT (CoDO m)
 
 -- pair DSL with interpreter within some monadic context
 instance (Monad m) => PairingM (CoDO m) DO m where
-  pairM f (CoDO ks _  _ _ )  (ListKeys k)   = pairM f ks k
-  pairM f (CoDO _ szs _ _ )  (ListSizes k)  = pairM f szs k
-  pairM f (CoDO _ _ imgs _ )  (ListImages k) = pairM f imgs k
-  pairM f (CoDO _ _ _ rgns )  (ListRegions k) = pairM f rgns k
+  pairM f (CoDO ks _  _ _ )  (ListKeys q k)     = pairM f (ks q) k
+  pairM f (CoDO _ szs _ _ )  (ListSizes q k)    = pairM f (szs q) k
+  pairM f (CoDO _ _ imgs _ )  (ListImages q k)  = pairM f (imgs q) k
+  pairM f (CoDO _ _ _ rgns )  (ListRegions q k) = pairM f (rgns q) k

@@ -7,16 +7,19 @@ import           Control.Applicative
 import           Control.Comonad.Env.Class    (ComonadEnv, ask)
 import           Control.Exception            (IOException)
 import           Control.Monad.Trans          (MonadIO)
-import           Data.Aeson                   as A hiding (Result)
+import           Data.Aeson                    as A hiding (Result)
 import           Data.Maybe
 import           Data.Monoid                  ((<>))
 import           Data.Proxy
 import           Network.DO.Droplets.Commands
 import           Network.DO.Droplets.Utils
 import           Network.DO.Net.Common
-import           Network.DO.Types             as DO hiding (URI)
+import           Network.DO.Types              as DO hiding (URI)
+import           Network.HTTP.QueryString     (QueryString)
 import           Network.REST
-import           Prelude                      as P hiding (error)
+import           Prelude                       as P hiding (error)
+import qualified Data.ByteString.Char8         as B8
+import qualified Network.HTTP.QueryString      as QS
 
 dropletsURI :: String
 dropletsURI = "droplets"
@@ -28,10 +31,12 @@ instance Listable Droplet where
   listEndpoint _ = dropletsEndpoint
   listField _    = "droplets"
 
-doListSnapshots :: (ComonadEnv ToolConfiguration w, Monad m) => w a -> Id -> (RESTT m (Result [Image]), w a)
-doListSnapshots w dropletId =
+doListSnapshots :: (ComonadEnv ToolConfiguration w, Monad m) => w a -> QueryString -> Id -> (RESTT m (Result [Image]), w a)
+doListSnapshots w qs dropletId =
   maybe (errMissingToken, w)
-  (\ t -> let snapshots = toList "snapshots" <$> getJSONWith (authorisation t) (toURI $ dropletsEndpoint </> show dropletId </> "snapshots")
+  (\ t -> let
+            uri = toURI $ dropletsEndpoint </> show dropletId </> "snapshots" <?> B8.unpack (QS.toString qs)
+            snapshots = toList "snapshots" <$> getJSONWith (authorisation t) uri
           in (snapshots, w))
   (authToken (ask w))
 

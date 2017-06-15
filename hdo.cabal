@@ -31,26 +31,28 @@ Library
                  , Network.REST, Network.DO.Pretty
 
   exposed-modules: Network.DO
-  Build-Depends: aeson
-               , base >= 4 && < 5
+  Build-Depends: base >= 4.6 && < 5
+               , aeson
                , bytestring
                , case-insensitive
                , comonad
                , data-default
                , free
                , http-conduit
+               , http-querystring
                , iproute
                , lens
-               , pretty
                , mtl
                , network-uri
                , parsec
+               , pretty
+               , process
                , random
-               , text
                , tagged
+               , text
                , time
                , transformers
-               , unix, process
+               , unix
                , unordered-containers
                , vector
 
