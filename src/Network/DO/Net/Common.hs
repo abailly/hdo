@@ -54,6 +54,9 @@ queryList p w qs = maybe (errMissingToken, w)
                   in (resources, w))
                 (authToken (ask w))
 
+emptyQuery :: QueryString
+emptyQuery = QS.queryString []
+
 errMissingToken :: (Monad m) => m (Result a)
 errMissingToken = return $ error "no authentication token defined"
 
