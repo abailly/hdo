@@ -82,7 +82,7 @@ parseCommandOptions ("droplets":"create":args) = do
    (c,[],[])  -> createDroplet (foldl (flip P.id) b c) >>= outputResult
    (_,_,errs) -> liftIO $ ioError (userError (concat errs  ++ usage))
 parseCommandOptions ("droplets":"destroy":dropletId:[]) = destroyDroplet (P.read dropletId) >>= outputResult
-parseCommandOptions ("droplets":"list":_)               = listDroplets >>= outputResult
+parseCommandOptions ("droplets":"list":_)               = listDroplets emptyQuery >>= outputResult
 parseCommandOptions ("droplets":"power_off":dropletId:[])
                                                          = dropletAction (P.read dropletId) DoPowerOff >>= outputResult
 parseCommandOptions ("droplets":"power_on":dropletId:[])
@@ -92,26 +92,26 @@ parseCommandOptions ("droplets":"snapshot":dropletId:snapshotName:[])
 parseCommandOptions ("droplets":"action":dropletId:actionId:[])
                                                          = getAction (P.read dropletId)  (P.read actionId) >>= outputResult
 parseCommandOptions ("droplets":dropletId:"snapshots":[])
-                                                         = listDropletSnapshots (P.read dropletId) >>= outputResult
+                                                         = listDropletSnapshots emptyQuery (P.read dropletId) >>= outputResult
 parseCommandOptions ("droplets":dropletId:[])
                                                          = showDroplet (P.read dropletId) >>= outputResult
 parseCommandOptions ("droplets":"ssh":dropletIdOrName:[])
-                                                         =  (do
-                                                               droplets <- fmap (findByIdOrName dropletIdOrName) <$> listDroplets
-                                                               case droplets of
-                                                                 Right (did:_) -> dropletConsole did
-                                                                 Right []      -> return $ error ("no droplet with id or name " <> dropletIdOrName)
-                                                                 Left err      -> return $ Left err
-                                                            ) >>= outputResult
+                                                         = (do
+                                                             droplets <- fmap (findByIdOrName dropletIdOrName) <$> listDroplets emptyQuery
+                                                             case droplets of
+                                                                   Right (did:_) -> dropletConsole did
+                                                                   Right []      -> return $ error ("no droplet with id or name " <> dropletIdOrName)
+                                                                   Left err      -> return $ Left err
+                                                           ) >>= outputResult
 
-parseCommandOptions ("images":"list":_)                  = listImages >>= outputResult
-parseCommandOptions ("regions":"list":_)                 = listRegions >>= outputResult
-parseCommandOptions ("keys":"list":_)                    = listKeys >>= outputResult
-parseCommandOptions ("sizes":"list":_)                   = listSizes >>= outputResult
+parseCommandOptions ("images":"list":_)                  = listImages emptyQuery >>= outputResult
+parseCommandOptions ("regions":"list":_)                 = listRegions emptyQuery >>= outputResult
+parseCommandOptions ("keys":"list":_)                    = listKeys emptyQuery >>= outputResult
+parseCommandOptions ("sizes":"list":_)                   = listSizes emptyQuery >>= outputResult
 
-parseCommandOptions ("ips":"list":_)                     = listFloatingIPs >>= outputResult
+parseCommandOptions ("ips":"list":_)                     = listFloatingIPs emptyQuery >>= outputResult
 parseCommandOptions ("ips":"create":dropletOrRegion:[])  = do
-  regions <- either (const []) id <$> listRegions
+  regions <- either (const []) id <$> listRegions emptyQuery
   outputResult =<< if dropletOrRegion `elem` map regionSlug regions
     then createFloatingIP (TargetRegion dropletOrRegion)
     else createFloatingIP (TargetDroplet $ read dropletOrRegion)
@@ -119,17 +119,17 @@ parseCommandOptions ("ips":"delete":ip:[])     = deleteFloatingIP (P.read ip) >>
 parseCommandOptions ("ips":ip:"assign":did:[]) = assignFloatingIP (P.read ip) (P.read did) >>= outputResult
 parseCommandOptions ("ips":ip:"unassign": [])  = unassignFloatingIP (P.read ip) >>= outputResult
 
-parseCommandOptions ("dns":"list":_)             = listDomains >>= outputResult
+parseCommandOptions ("dns":"list":_)             = listDomains emptyQuery >>= outputResult
 parseCommandOptions ("dns":"create":name:ip:[])  = createDomain (P.read name) (P.read ip) >>= outputResult
 parseCommandOptions ("dns":"delete":name:[])     = deleteDomain (P.read name) >>= outputResult
-parseCommandOptions ("dns":name:"list":_)        = listRecords (P.read name) >>= outputResult
+parseCommandOptions ("dns":name:"list":_)        = listRecords emptyQuery (P.read name) >>= outputResult
 parseCommandOptions ("dns":name:"create":rest)   =
   case (parseRecord $ unwords rest) of
     Left (Error e) -> fail e
     Right r        -> createRecord (P.read name) r >>= outputResult
 parseCommandOptions ("dns":name:"delete":rid:[]) = deleteRecord (P.read name) (P.read rid) >>= outputResult
 
-parseCommandOptions ("tags":"list":_) = listTags >>= outputResult
+parseCommandOptions ("tags":"list":_) = listTags emptyQuery >>= outputResult
 parseCommandOptions ("tags":"create":name:[]) = createTag name >>= outputResult
 parseCommandOptions ("tags":"delete":name:[]) = deleteTag name >>= outputResult
 parseCommandOptions ("tags":"tag":name:rid:rtype:[]) = tagResources name (TagPairs [TagPair (P.read rid) (P.read rtype)]) >>= outputResult
