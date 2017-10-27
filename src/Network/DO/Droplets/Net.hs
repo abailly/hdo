@@ -1,4 +1,9 @@
-{-# LANGUAGE DoAndIfThenElse, FlexibleContexts, MultiParamTypeClasses, OverloadedStrings, RecordWildCards, ScopedTypeVariables #-}
+{-# LANGUAGE DoAndIfThenElse       #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE RecordWildCards       #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
 
 -- | Network interpreter for Droplets specific API
 module Network.DO.Droplets.Net(dropletCommandsInterpreter) where
@@ -7,19 +12,19 @@ import           Control.Applicative
 import           Control.Comonad.Env.Class    (ComonadEnv, ask)
 import           Control.Exception            (IOException)
 import           Control.Monad.Trans          (MonadIO)
-import           Data.Aeson                    as A hiding (Result)
+import           Data.Aeson                   as A hiding (Options, Result)
+import qualified Data.ByteString.Char8        as B8
 import           Data.Maybe
 import           Data.Monoid                  ((<>))
 import           Data.Proxy
 import           Network.DO.Droplets.Commands
 import           Network.DO.Droplets.Utils
 import           Network.DO.Net.Common
-import           Network.DO.Types              as DO hiding (URI)
+import           Network.DO.Types             as DO hiding (URI)
 import           Network.HTTP.QueryString     (QueryString)
+import qualified Network.HTTP.QueryString     as QS
 import           Network.REST
-import           Prelude                       as P hiding (error)
-import qualified Data.ByteString.Char8         as B8
-import qualified Network.HTTP.QueryString      as QS
+import           Prelude                      as P hiding (error)
 
 dropletsURI :: String
 dropletsURI = "droplets"
