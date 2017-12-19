@@ -1,4 +1,8 @@
-{-# LANGUAGE DoAndIfThenElse, MultiParamTypeClasses, OverloadedStrings, RecordWildCards, ScopedTypeVariables #-}
+{-# LANGUAGE DoAndIfThenElse       #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE RecordWildCards       #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
 module Main where
 
 import           Control.Exception      (catch, throw)
@@ -48,7 +52,7 @@ getSlackUriFromEnv = (Just `fmap` getEnv "SLACK_URI") `catch` (\ (e :: IOError) 
 defaultBox :: IO BoxConfiguration
 defaultBox = do
   name <- generateName
-  return $ BoxConfiguration name (RegionSlug "ams2") G4 defaultImage [] False
+  return $ BoxConfiguration name (RegionSlug "ams2") (SizeSlug "4gb") defaultImage [] False
 
 defaultTool :: IO ToolConfiguration
 defaultTool = do

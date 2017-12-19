@@ -10,18 +10,18 @@
 -- See https://developers.digitalocean.com/documentation/v2/
 module Network.DO.Types where
 
-import           Data.Aeson         as A hiding (Error, Result)
-import           Data.Aeson.Types   as A hiding (Error, Result)
+import           Data.Aeson        as A hiding (Error, Result)
+import           Data.Aeson.Types  as A hiding (Error, Result)
 import           Data.Default
-import           Data.Maybe        (isNothing)
-import qualified Data.HashMap.Lazy  as H
+import qualified Data.HashMap.Lazy as H
 import           Data.IP
-import           Data.List         (elemIndex, concat)
+import           Data.List         (concat, elemIndex)
+import           Data.Maybe        (isNothing)
 import           Data.Monoid       ((<>))
 import           Data.Text         (pack, unpack)
 import           Data.Time         (UTCTime)
 import           GHC.Generics
-import qualified Text.Parsec        as P
+import qualified Text.Parsec       as P
 
 type AuthToken = String
 
@@ -85,30 +85,21 @@ instance FromJSON Region where
                               <*> o .: "available"
   parseJSON e          = failParse e
 
--- | String representation of size slugs
--- This maps to corresponding expected JSON string value.
-sizeSlugs :: [String]
-sizeSlugs = [ "512mb", "1gb",  "2gb",  "4gb",  "8gb",  "16gb", "32gb", "48gb", "64gb", "96gb"  ]
-
 -- | Enumeration of all possible size slugs
-data SizeSlug = M512 | G1 | G2 | G4 | G8 | G16 | G32 | G48 | G64 | G96
-              deriving (Enum,Ord,Eq)
+newtype SizeSlug = SizeSlug String
+              deriving (Ord,Eq)
 
 instance Show SizeSlug where
-  show sz = sizeSlugs !! fromEnum sz
+  show (SizeSlug sz) = sz
 
 instance Read SizeSlug where
-  readsPrec _ sz = case elemIndex sz sizeSlugs of
-                    Just i  -> return (toEnum i, "")
-                    Nothing -> fail $ "cannot parse " <> sz
+  readsPrec _ sz = [(SizeSlug sz,"")]
 
 instance ToJSON SizeSlug where
-  toJSON sz = toJSON $ sizeSlugs !! fromEnum sz
+  toJSON (SizeSlug sz) = String $ pack sz
 
 instance FromJSON SizeSlug where
-  parseJSON (String s) = case elemIndex (unpack s) sizeSlugs of
-                          Just i -> return $ toEnum i
-                          Nothing -> fail $ "cannot parse " <> unpack s
+  parseJSON (String s) = pure $ SizeSlug $ unpack s
   parseJSON e          = failParse e
 
 
@@ -178,11 +169,11 @@ data Status = New
 
 instance FromJSON Status where
   parseJSON (String s) = case s of
-                          "new"      -> return New
-                          "active"   -> return Active
-                          "off"      -> return Off
-                          "archive"  -> return Archive
-                          _          -> fail $ "cannot parse " <> unpack s
+                          "new"     -> return New
+                          "active"  -> return Active
+                          "off"     -> return Off
+                          "archive" -> return Archive
+                          _         -> fail $ "cannot parse " <> unpack s
   parseJSON e          = failParse e
 
 instance ToJSON Status where
@@ -219,7 +210,7 @@ instance ToJSON IP where
 
 instance FromJSON NetType where
   parseJSON (String s) = case s of
-                          "public" -> return Public
+                          "public"  -> return Public
                           "private" -> return Private
                           e         -> failParse e
   parseJSON e          = failParse e
@@ -345,10 +336,10 @@ data ImageType = Snapshot
 
 instance FromJSON ImageType where
   parseJSON (String s) = case s of
-                          "snapshot" -> return Snapshot
+                          "snapshot"  -> return Snapshot
                           "temporary" -> return Temporary
-                          "backup" -> return Backup
-                          _        -> fail $ "cannot parse " <> unpack s
+                          "backup"    -> return Backup
+                          _           -> fail $ "cannot parse " <> unpack s
   parseJSON e          = failParse e
 
 -- | Type of droplet images
@@ -481,8 +472,8 @@ instance FromJSON DropletActionType where
   parseJSON v          = fail $ "cannot parse action type " ++ show v
 
 instance ToJSON DropletActionType where
-  toJSON PowerOff = String "power_off"
-  toJSON PowerOn  = String "power_on"
+  toJSON PowerOff     = String "power_off"
+  toJSON PowerOn      = String "power_on"
   toJSON MakeSnapshot = String "snapshot"
 
 data Action = DoPowerOff
