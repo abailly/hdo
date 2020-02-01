@@ -11,7 +11,7 @@
 module Network.DO.Types where
 
 import           Data.Aeson        as A hiding (Error, Result)
-import           Data.Aeson.Types  as A hiding (Error, Result)
+import           Data.Aeson.Types  as A hiding (Error, Key, Result)
 import           Data.Default
 import qualified Data.HashMap.Lazy as H
 import           Data.IP
@@ -36,10 +36,12 @@ type Result a = Either Error a
 error :: String -> Result a
 error = Left . Error
 
-data ToolConfiguration = Tool { slackUri  :: Maybe URI
-                              , authToken :: Maybe AuthToken
-                              , quiet     :: Bool
-                              } deriving (Show,Read)
+data ToolConfiguration = Tool
+    { slackUri  :: Maybe URI
+    , authToken :: Maybe AuthToken
+    , quiet     :: Bool
+    }
+    deriving (Show, Read)
 
 instance Default ToolConfiguration where
   def = Tool Nothing Nothing False
@@ -48,13 +50,14 @@ instance Default ToolConfiguration where
 -- A region can be assigned an empty object when it is undefined, or be referenced simply
 -- by its @slug@
 -- https://developers.digitalocean.com/documentation/v2/#regions
-data Region = Region { regionName      :: String
-                     , regionSlug      :: Slug
-                     , regionSizes     :: [ SizeSlug ]
-                     , regionAvailable :: Bool
-                     }
-            | RegionSlug Slug
-            | NoRegion
+data Region = Region
+    { regionName      :: String
+    , regionSlug      :: Slug
+    , regionSizes     :: [SizeSlug]
+    , regionAvailable :: Bool
+    }
+    | RegionSlug Slug
+    | NoRegion
 
 instance ToJSON Region where
   toJSON (RegionSlug s) = toJSON s
@@ -109,13 +112,15 @@ type KeyId = Int
 defaultImage :: ImageSlug
 defaultImage = "ubuntu-14-04-x64"
 
-data BoxConfiguration = BoxConfiguration { configName       :: String
-                                         , boxRegion        :: Region
-                                         , size             :: SizeSlug
-                                         , configImageSlug  :: ImageSlug
-                                         , keys             :: [KeyId]
-                                         , backgroundCreate :: Bool
-                                         } deriving (Show)
+data BoxConfiguration = BoxConfiguration
+    { configName       :: String
+    , boxRegion        :: Region
+    , size             :: SizeSlug
+    , configImageSlug  :: ImageSlug
+    , keys             :: [KeyId]
+    , backgroundCreate :: Bool
+    }
+    deriving (Show)
 
 instance ToJSON BoxConfiguration where
   toJSON BoxConfiguration{..} = object [ "name"     .=  configName
@@ -162,10 +167,10 @@ instance ToJSON Date where
   toJSON Date{..} = toJSON theDate
 
 data Status = New
-            | Active
-            | Off
-            | Archive
-            deriving (Eq,Show)
+    | Active
+    | Off
+    | Archive
+    deriving (Eq, Show)
 
 instance FromJSON Status where
   parseJSON (String s) = case s of
@@ -183,23 +188,28 @@ instance ToJSON Status where
   toJSON Archive = "archive"
 
 
-data NetType = Public | Private deriving (Show, Eq)
+data NetType = Public
+    | Private
+    deriving (Show, Eq)
 
 -- | Type of a single Network definition
 --
 -- This type is parameterized with a phantom type which lifts the network address type at
 -- the type level (could use DataKinds extension...). This allows distinguishing types of
 -- of networks while using same parsing.
-data Network a = NetworkV4 { ip_address :: IP
-                           , netmask    :: IP
-                           , gateway    :: IP
-                           , netType    :: NetType
-                           }
-               | NetworkV6 { ip_address :: IP
-                           , netmask_v6 :: Int
-                           , gateway    :: IP
-                           , netType    :: NetType
-                           } deriving Show
+data Network a = NetworkV4
+    { ip_address :: IP
+    , netmask    :: IP
+    , gateway    :: IP
+    , netType    :: NetType
+    }
+    | NetworkV6
+    { ip_address :: IP
+    , netmask_v6 :: Int
+    , gateway    :: IP
+    , netType    :: NetType
+    }
+    deriving Show
 
 instance FromJSON IP where
   parseJSON (String s) = return $ read $ unpack s
@@ -257,11 +267,12 @@ instance ToJSON (Network V6) where
 --
 -- A network is either a list of IPv4 and IPv6 NICs definitions, or no network. We need this
 -- because a droplet can contain an ''empty'' @networks@  JSON Object entry, instead of @null@.
-data Networks = Networks { v4 :: [ Network V4 ]
-                         , v6 :: [ Network V6 ]
-                         }
-              | NoNetworks
-              deriving (Generic, Show)
+data Networks = Networks
+    { v4 :: [Network V4]
+    , v6 :: [Network V6]
+    }
+    | NoNetworks
+    deriving (Generic, Show)
 
 instance FromJSON Networks where
   parseJSON (Object n) = if H.null n
@@ -280,20 +291,22 @@ instance ToJSON Networks where
 -- | (Partial) Type of Droplets
 --
 -- https://developers.digitalocean.com/documentation/v2/#droplets
-data Droplet = Droplet { dropletId    :: Id
-                       , name         :: String
-                       , memory       :: Bytes Mega
-                       , vcpus        :: Int
-                       , disk         :: Bytes Giga
-                       , locked       :: Bool
-                       , created_at   :: Date
-                       , status       :: Status
-                       , backup_ids   :: [ Id ]
-                       , snapshot_ids :: [ Id ]
-                       , region       :: Region
-                       , size_slug    :: SizeSlug
-                       , networks     :: Networks
-                       } deriving (Show)
+data Droplet = Droplet
+    { dropletId    :: Id
+    , name         :: String
+    , memory       :: Bytes Mega
+    , vcpus        :: Int
+    , disk         :: Bytes Giga
+    , locked       :: Bool
+    , created_at   :: Date
+    , status       :: Status
+    , backup_ids   :: [Id]
+    , snapshot_ids :: [Id]
+    , region       :: Region
+    , size_slug    :: SizeSlug
+    , networks     :: Networks
+    }
+    deriving (Show)
 
 instance FromJSON Droplet where
   parseJSON (Object o) = Droplet
@@ -330,9 +343,9 @@ instance ToJSON Droplet where
 
 
 data ImageType = Snapshot
-               | Temporary
-               | Backup
-                 deriving Show
+    | Temporary
+    | Backup
+    deriving Show
 
 instance FromJSON ImageType where
   parseJSON (String s) = case s of
@@ -345,16 +358,18 @@ instance FromJSON ImageType where
 -- | Type of droplet images
 --
 -- https://developers.digitalocean.com/documentation/v2/#images
-data Image = Image { imageId          :: Id
-                   , imageName        :: String
-                   , distribution     :: String
-                   , imageSlug        :: Maybe Slug
-                   , publicImage      :: Bool
-                   , imageRegions     :: [ Region ]
-                   , min_disk_size    :: Bytes Giga
-                   , image_created_at :: Date
-                   , imageType        :: ImageType
-                   } deriving Show
+data Image = Image
+    { imageId          :: Id
+    , imageName        :: String
+    , distribution     :: String
+    , imageSlug        :: Maybe Slug
+    , publicImage      :: Bool
+    , imageRegions     :: [Region]
+    , min_disk_size    :: Bytes Giga
+    , image_created_at :: Date
+    , imageType        :: ImageType
+    }
+    deriving Show
 
 instance FromJSON Image where
   parseJSON (Object o) = Image
@@ -372,11 +387,13 @@ instance FromJSON Image where
 -- | Type of SSH @Key@s
 --
 --https://developers.digitalocean.com/documentation/v2/#ssh-keys
-data Key = Key { keyId          :: Id
-               , keyFingerprint :: String
-               , publicKey      :: String
-               , keyName        :: String
-               } deriving Show
+data Key = Key
+    { keyId          :: Id
+    , keyFingerprint :: String
+    , publicKey      :: String
+    , keyName        :: String
+    }
+    deriving Show
 
 instance FromJSON Key where
   parseJSON (Object o) = Key
@@ -392,16 +409,18 @@ type Price = Double
 -- | Type of Size objects
 --
 -- https://developers.digitalocean.com/documentation/v2/#sizes
-data Size = Size { szSlug          :: SizeSlug
-                 , szMemory        :: Bytes Mega
-                 , szVcpus         :: Int
-                 , szDisk          :: Bytes Giga
-                 , szTransfer      :: TransferRate
-                 , szPrice_Monthly :: Price
-                 , szPrice_Hourly  :: Price
-                 , szRegions       :: [ Region ]
-                 , szAvailable     :: Bool
-                 } deriving (Show)
+data Size = Size
+    { szSlug          :: SizeSlug
+    , szMemory        :: Bytes Mega
+    , szVcpus         :: Int
+    , szDisk          :: Bytes Giga
+    , szTransfer      :: TransferRate
+    , szPrice_Monthly :: Price
+    , szPrice_Hourly  :: Price
+    , szRegions       :: [Region]
+    , szAvailable     :: Bool
+    }
+    deriving (Show)
 
 
 instance FromJSON Size where
@@ -423,15 +442,17 @@ instance FromJSON Size where
 -- | Type of action status
 -- This is returned when action is initiated or when status of some action is requested
 
-data ActionResult result = ActionResult { actionId           :: Id
-                                        , actionStatus       :: ActionStatus
-                                        , actionType         :: result
-                                        , actionStartedAt    :: Maybe Date
-                                        , actionCompletedAt  :: Maybe Date
-                                        , actionResourceId   :: Id
-                                        , actionResourceType :: String
-                                        , actionRegionSlug   :: Region
-                                        } deriving (Show)
+data ActionResult result = ActionResult
+    { actionId           :: Id
+    , actionStatus       :: ActionStatus
+    , actionType         :: result
+    , actionStartedAt    :: Maybe Date
+    , actionCompletedAt  :: Maybe Date
+    , actionResourceId   :: Id
+    , actionResourceType :: String
+    , actionRegionSlug   :: Region
+    }
+    deriving (Show)
 
 instance (FromJSON r) => FromJSON (ActionResult r) where
   parseJSON (Object o) = ActionResult
@@ -446,9 +467,9 @@ instance (FromJSON r) => FromJSON (ActionResult r) where
   parseJSON v          = fail $ "cannot parse action " ++ show v
 
 data ActionStatus = InProgress
-                  | Completed
-                  | Errored
-                  deriving (Show)
+    | Completed
+    | Errored
+    deriving (Show)
 
 instance FromJSON ActionStatus where
   parseJSON (String s) = case s of
@@ -459,9 +480,9 @@ instance FromJSON ActionStatus where
   parseJSON v          = fail $ "cannot parse action status " ++ show v
 
 data DropletActionType = PowerOff
-                | PowerOn
-                | MakeSnapshot
-                deriving (Show)
+    | PowerOn
+    | MakeSnapshot
+    deriving (Show)
 
 instance FromJSON DropletActionType where
   parseJSON (String s) = case s of
@@ -477,9 +498,9 @@ instance ToJSON DropletActionType where
   toJSON MakeSnapshot = String "snapshot"
 
 data Action = DoPowerOff
-            | DoPowerOn
-            | CreateSnapshot String
-            deriving Show
+    | DoPowerOn
+    | CreateSnapshot String
+    deriving Show
 
 instance ToJSON Action where
   toJSON DoPowerOff                    = object [ "type" .= PowerOff ]
@@ -507,10 +528,12 @@ instance FromJSON DomainName where
 instance ToJSON DomainName where
   toJSON (DomainName n) = String (pack n)
 
-data Domain = Domain { domainName :: DomainName
-                     , domainTTL  :: Maybe Int
-                     , zone_file  :: Maybe String
-                     } deriving (Show)
+data Domain = Domain
+    { domainName :: DomainName
+    , domainTTL  :: Maybe Int
+    , zone_file  :: Maybe String
+    }
+    deriving (Show)
 
 instance FromJSON Domain where
   parseJSON (Object o) = Domain
@@ -528,8 +551,15 @@ instance ToJSON DomainConfig where
                                          ]
 
 -- | Enumeration of possible DNS records types
-data DNSType = A | CNAME | TXT | PTR | SRV | NS | AAAA | MX
-             deriving (Show, Read, Generic)
+data DNSType = A
+    | CNAME
+    | TXT
+    | PTR
+    | SRV
+    | NS
+    | AAAA
+    | MX
+    deriving (Show, Read, Generic)
 
 instance FromJSON DNSType
 instance ToJSON DNSType
@@ -537,14 +567,16 @@ instance ToJSON DNSType
 -- | Type of Domain zone file entries
 --
 -- https://developers.digitalocean.com/documentation/v2/#domain-records
-data DomainRecord = DomainRecord { recordId       :: Id
-                                 , recordType     :: DNSType
-                                 , recordName     :: String
-                                 , recordData     :: String
-                                 , recordPriority :: Maybe Int
-                                 , recordPort     :: Maybe Int
-                                 , recordWeight   :: Maybe Int
-                                 } deriving (Show)
+data DomainRecord = DomainRecord
+    { recordId       :: Id
+    , recordType     :: DNSType
+    , recordName     :: String
+    , recordData     :: String
+    , recordPriority :: Maybe Int
+    , recordPort     :: Maybe Int
+    , recordWeight   :: Maybe Int
+    }
+    deriving (Show)
 
 
 instance FromJSON DomainRecord where
@@ -615,10 +647,12 @@ parseRecord s =
 -- | Floating IPs
 -- https://developers.digitalocean.com/documentation/v2/#floating-ips
 
-data FloatingIP = FloatingIP { floatingIp      :: IP
-                             , floatingDroplet :: Maybe Droplet
-                             , floatingRegion  :: Region
-                             } deriving (Show)
+data FloatingIP = FloatingIP
+    { floatingIp      :: IP
+    , floatingDroplet :: Maybe Droplet
+    , floatingRegion  :: Region
+    }
+    deriving (Show)
 
 instance FromJSON FloatingIP where
   parseJSON (Object o) = FloatingIP
@@ -629,16 +663,16 @@ instance FromJSON FloatingIP where
   parseJSON e          = failParse e
 
 data FloatingIPTarget = TargetRegion Slug
-                      | TargetDroplet Id
-                        deriving (Show)
+    | TargetDroplet Id
+    deriving (Show)
 
 instance ToJSON FloatingIPTarget where
   toJSON (TargetRegion r)  = object [ "region" .= r ]
   toJSON (TargetDroplet i) = object [ "droplet_id" .= i ]
 
 data IPAction = AssignIP Id
-              | UnassignIP
-  deriving (Show, Read)
+    | UnassignIP
+    deriving (Show, Read)
 
 instance ToJSON IPAction where
   toJSON (AssignIP did) = object [ "type" .= ("assign" :: String)
@@ -647,8 +681,8 @@ instance ToJSON IPAction where
   toJSON UnassignIP     = object [ "type" .= ("unassign" :: String)]
 
 data IPActionType = Assign
-                  | Unassign
-                deriving (Show)
+    | Unassign
+    deriving (Show)
 
 instance FromJSON IPActionType where
   parseJSON (String s) = case s of
@@ -659,11 +693,10 @@ instance FromJSON IPActionType where
 
 
 -- | Type of Resources
-data ResourceType
-  = ResourceDroplet
-  | ResourceVolume
-  | ResourceBackend
-  deriving (Eq, Ord, Enum)
+data ResourceType = ResourceDroplet
+    | ResourceVolume
+    | ResourceBackend
+    deriving (Eq, Ord, Enum)
 
 resourceTypes :: [String]
 resourceTypes = ["droplet", "volume", "backend"]
@@ -693,14 +726,21 @@ instance ToJSON ResourceType where
 --
 -- https://developers.digitalocean.com/documentation/v2/#block-storage
 data Volume = Volume
-  { volumeId            :: Id      -- ^ The unique identifier for the Block Storage Volume.
-  , volumeRegion        :: Region  -- ^ The region that the Block Storage Volume is located in.
-  , volumeDropletIds    :: [Id]    -- ^ An array containing the IDs of the Droplets the volume is attached to.
-  , volumeName          :: String  -- ^ A human-redable name for the Block Storage Volume.
-  , volumeDescription   :: String  -- ^ An optional free-form text field to describe a Block Storage Volume.
-  , volumeSizeGigaBytes :: Int     -- ^ The size of the Block Storage Volume in GiB (1024^3)
-  , volumeCreatedAt     :: Date    -- ^ A time value that represents when the Block Storage Volume was created.
-  } deriving (Show)
+    { volumeId            :: Id -- ^ The unique identifier for the Block Storage Volume.
+    -- ^ The region that the Block Storage Volume is located in.
+    , volumeRegion        :: Region -- ^ The region that the Block Storage Volume is located in.
+    -- ^ An array containing the IDs of the Droplets the volume is attached to.
+    , volumeDropletIds    :: [Id] -- ^ An array containing the IDs of the Droplets the volume is attached to.
+    -- ^ A human-redable name for the Block Storage Volume.
+    , volumeName          :: String -- ^ A human-redable name for the Block Storage Volume.
+    -- ^ An optional free-form text field to describe a Block Storage Volume.
+    , volumeDescription   :: String -- ^ An optional free-form text field to describe a Block Storage Volume.
+    -- ^ The size of the Block Storage Volume in GiB (1024^3)
+    , volumeSizeGigaBytes :: Int -- ^ The size of the Block Storage Volume in GiB (1024^3)
+    -- ^ A time value that represents when the Block Storage Volume was created.
+    , volumeCreatedAt     :: Date -- ^ A time value that represents when the Block Storage Volume was created.
+    }
+    deriving (Show)
 
 instance FromJSON Volume where
   parseJSON (Object o) = Volume
@@ -732,34 +772,45 @@ instance ToJSON Volume where
 type TagName = String
 
 data Tag = Tag
-  { tagName       :: TagName       -- ^ The tag name
-  , tagResources_ :: TagResources  -- ^ An embedded object containing key value pairs of resource type and resource statistics
-  } deriving (Show)
+    { tagName       :: TagName -- ^ The tag name
+    -- ^ An embedded object containing key value pairs of resource type and resource statistics
+    , tagResources_ :: TagResources -- ^ An embedded object containing key value pairs of resource type and resource statistics
+    }
+    deriving (Show)
 
 data TagResources = TagResources
-  { tagDroplets :: TagDroplets  -- ^ Statistics about the droplets resources
-  , tagVolumes  :: TagVolumes   -- ^ Statistics about the volumes resources
-  -- NOTE backend resources seem to exist too but I can't find any representation of them :|
-  } deriving (Show)
+    { tagDroplets :: TagDroplets -- ^ Statistics about the droplets resources
+    -- ^ Statistics about the volumes resources
+    , tagVolumes  :: TagVolumes -- ^ Statistics about the volumes resources
+    -- NOTE backend resources seem to exist too but I can't find any representation of them :|
+    }
+    deriving (Show)
 
 data TagDroplets = TagDroplets
-  { tagDropletsCount      :: Int            -- ^ The number of tagged droplets
-  , tagDropletsLastTagged :: Maybe Droplet  -- ^ The last tagged droplet
-  } deriving (Show)
+    { tagDropletsCount      :: Int -- ^ The number of tagged droplets
+    -- ^ The last tagged droplet
+    , tagDropletsLastTagged :: Maybe Droplet -- ^ The last tagged droplet
+    }
+    deriving (Show)
 
 data TagVolumes = TagVolumes
-  { tagVolumesCount      :: Int           -- ^ The number of tagged volumes
-  , tagVolumesLastTagged :: Maybe Volume  -- ^ The last tagged volume
-  } deriving (Show)
+    { tagVolumesCount      :: Int -- ^ The number of tagged volumes
+    -- ^ The last tagged volume
+    , tagVolumesLastTagged :: Maybe Volume -- ^ The last tagged volume
+    }
+    deriving (Show)
 
 data TagPairs = TagPairs
-  { tagPairsResources :: [TagPair] -- ^ An array of objects containing resource_id and resource_type attributes
-  } deriving (Show)
+    { tagPairsResources :: [TagPair] -- ^ An array of objects containing resource_id and resource_type attributes
+    }
+    deriving (Show)
 
 data TagPair = TagPair
-  { tagPairResourceId   :: Id            -- ^ The identifier of a resource
-  , tagPairResourceType :: ResourceType  -- ^ The type of the resource
-  } deriving (Show)
+    { tagPairResourceId   :: Id -- ^ The identifier of a resource
+    -- ^ The type of the resource
+    , tagPairResourceType :: ResourceType -- ^ The type of the resource
+    }
+    deriving (Show)
 
 
 instance FromJSON Tag where

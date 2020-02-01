@@ -11,18 +11,18 @@ module Network.DO.Domain.Net(dnsCommandsInterpreter) where
 import           Control.Applicative
 import           Control.Comonad.Env.Class  (ComonadEnv, ask)
 import           Control.Monad.Trans        (MonadIO)
-import           Data.Aeson                  as A hiding (Result)
-import           Data.ByteString.Char8       as B8
+import           Data.Aeson                 as A hiding (Result, (<?>))
+import           Data.ByteString.Char8      as B8
 import           Data.IP
 import           Data.Maybe
 import           Data.Proxy
 import           Network.DO.Domain.Commands
 import           Network.DO.Net.Common
-import           Network.DO.Types            as DO hiding (URI)
+import           Network.DO.Types           as DO hiding (URI)
 import           Network.HTTP.QueryString   (QueryString)
+import qualified Network.HTTP.QueryString   as QS
 import           Network.REST
-import           Prelude                     as P hiding (error)
-import qualified Network.HTTP.QueryString    as QS
+import           Prelude                    as P hiding (error)
 
 domainsURI :: String
 domainsURI = "domains"
@@ -85,4 +85,3 @@ dnsCommandsInterpreter = CoDomainCommands
                         <*> doListRecords
                         <*> doCreateRecord
                         <*> doDeleteRecord
-

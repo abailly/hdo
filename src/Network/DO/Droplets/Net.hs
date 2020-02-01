@@ -12,7 +12,8 @@ import           Control.Applicative
 import           Control.Comonad.Env.Class    (ComonadEnv, ask)
 import           Control.Exception            (IOException)
 import           Control.Monad.Trans          (MonadIO)
-import           Data.Aeson                   as A hiding (Options, Result)
+import           Data.Aeson                   as A hiding (Options, Result,
+                                                    (<?>))
 import qualified Data.ByteString.Char8        as B8
 import           Data.Maybe
 import           Data.Monoid                  ((<>))
@@ -117,4 +118,3 @@ dropletCommandsInterpreter = CoDropletCommands
                              <*> doListSnapshots
                              <*> doSshInDroplet
                              <*> doShowDroplet
-

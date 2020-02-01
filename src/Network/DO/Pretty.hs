@@ -6,6 +6,7 @@ module Network.DO.Pretty where
 import           Control.Monad.IO.Class (MonadIO (..))
 import           Data.IP                (IP)
 import           Network.DO.Types
+import           Prelude                hiding ((<>))
 import           Text.PrettyPrint
 
 class (Show a) => Pretty a where
@@ -16,7 +17,7 @@ instance Pretty () where
   pretty () = text ""
 
 instance (Pretty a, Pretty b) => Pretty (Either a b) where
-  pretty (Left a) = text "Error:" <+> pretty a
+  pretty (Left a)  = text "Error:" <+> pretty a
   pretty (Right a) = pretty a
 
 instance (Pretty a) => Pretty (Maybe a) where
@@ -125,4 +126,3 @@ instance Pretty Volume where
 
 outputResult :: (Pretty a, MonadIO m) => a -> m  ()
 outputResult = liftIO . putStrLn . render . pretty
-

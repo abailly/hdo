@@ -1,4 +1,6 @@
-{-# LANGUAGE DeriveFunctor, OverloadedStrings, ScopedTypeVariables #-}
+{-# LANGUAGE DeriveFunctor       #-}
+{-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 -- | Functor and low-level mechanism to interact with a server using "REST" API.
 --
 -- This module exposes @REST@ functor which can be implemented using various stack.
@@ -9,22 +11,21 @@ module Network.REST.Commands where
 
 import           Control.Monad.Trans.Free (FreeT (..), liftF)
 import           Data.Aeson               (Value)
-import           Data.Monoid
 import           Data.Text                (Text, pack)
 import           Network.URI              (URI)
 
-data Options = Header Text [ Text ]
+data Options = Header Text [Text]
 
 authorisation :: String -> Options
 authorisation t = Header "Authorization" [ "Bearer " <> pack t]
 
 data REST a = Get URI (Value -> a)
-           | Post URI Value (Maybe Value -> a)
-           | WaitFor Int String a
-           | GetWith Options URI (Value -> a)
-           | PostWith Options URI Value (Either String Value -> a)
-           | DeleteWith Options URI Value a
-           deriving (Functor)
+    | Post URI Value (Maybe Value -> a)
+    | WaitFor Int String a
+    | GetWith Options URI (Value -> a)
+    | PostWith Options URI Value (Either String Value -> a)
+    | DeleteWith Options URI Value a
+    deriving (Functor)
 
 type RESTT = FreeT REST
 
@@ -46,4 +47,3 @@ deleteJSONWith opts uri json = liftF $ DeleteWith opts uri json ()
 
 waitFor :: (Monad m) => Int -> String -> RESTT m ()
 waitFor delay message = liftF $ WaitFor delay message ()
-

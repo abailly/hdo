@@ -18,6 +18,7 @@ Extra-Source-Files:
 
 Library
   Default-Language:   Haskell2010
+  Default-Extensions: OverloadedStrings
   GHC-Options:  -Wall -fno-warn-orphans
   Hs-Source-Dirs:  src
   Other-Modules:   Network.REST.Commands, Network.REST.Conduit, Network.SSH, Network.DO.Types
@@ -29,17 +30,19 @@ Library
                  , Network.DO.Tags, Network.DO.Tags.Commands, Network.DO.Tags.Net
                  , Network.DO.Names, Network.DO.Pairing
                  , Network.REST, Network.DO.Pretty
-
+                 , Network.HTTP.QueryString
+                 , Network.HTTP.QueryString.Internal
   exposed-modules: Network.DO
   Build-Depends: base >= 4.6 && < 5
                , aeson
                , bytestring
                , case-insensitive
                , comonad
+               , containers
                , data-default
                , free
                , http-conduit
-               , http-querystring
+               , http-types
                , iproute
                , lens
                , mtl

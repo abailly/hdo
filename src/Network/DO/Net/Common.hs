@@ -1,21 +1,23 @@
-{-# LANGUAGE FlexibleContexts, MultiParamTypeClasses, OverloadedStrings #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings     #-}
 module Network.DO.Net.Common where
 
 import           Control.Comonad.Env.Class (ComonadEnv, ask)
-import           Data.Aeson                 as A hiding (Result)
+import           Data.Aeson                as A hiding (Result, (<?>))
+import qualified Data.Aeson.Types          as A
+import qualified Data.ByteString.Char8     as B8
+import qualified Data.HashMap.Strict       as H
 import           Data.Maybe
 import           Data.Proxy
 import           Data.Text                 (Text)
-import           Network.DO.Types           as DO hiding (URI, error)
+import qualified Data.Vector               as V
+import           Network.DO.Types          as DO hiding (URI, error)
 import           Network.HTTP.QueryString  (QueryString)
+import qualified Network.HTTP.QueryString  as QS
 import           Network.REST
 import           Network.URI               (URI, parseURI)
-import           Prelude                    as P
-import qualified Data.Aeson.Types           as A
-import qualified Data.ByteString.Char8      as B8
-import qualified Data.HashMap.Strict        as H
-import qualified Data.Vector                as V
-import qualified Network.HTTP.QueryString   as QS
+import           Prelude                   as P
 
 rootURI :: String
 rootURI = "https://api.digitalocean.com"
