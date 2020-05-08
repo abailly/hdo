@@ -8,7 +8,6 @@ module Main where
 import           Control.Exception      (catch, throw)
 import           Control.Monad.IO.Class (MonadIO (..))
 import           Data.Maybe
-import           Data.Monoid            ((<>))
 import           Network.DO
 import           Prelude                as P hiding (error)
 import           System.Console.GetOpt
@@ -79,7 +78,7 @@ main = do
   (_, cmds) <- parseOptions args
   runDOEnv (parseCommandOptions cmds)
 
-parseCommandOptions :: (MonadIO m) => [String] -> Command m ()
+parseCommandOptions :: (MonadIO m, MonadFail m) => [String] -> Command m ()
 parseCommandOptions ("droplets":"create":args) = do
   b <- liftIO defaultBox
   case getOpt Permute createDropletOptions args of

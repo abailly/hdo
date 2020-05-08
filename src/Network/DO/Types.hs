@@ -887,5 +887,5 @@ instance ToJSON TagPair where
 
 -- Utility
 --
-failParse :: (Show a1, Monad m) => a1 -> m a
+failParse :: (Show a1, Monad m, MonadFail m) => a1 -> m a
 failParse e = fail $ "cannot parse " <> show e

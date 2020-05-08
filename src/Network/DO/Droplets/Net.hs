@@ -16,7 +16,6 @@ import           Data.Aeson                   as A hiding (Options, Result,
                                                     (<?>))
 import qualified Data.ByteString.Char8        as B8
 import           Data.Maybe
-import           Data.Monoid                  ((<>))
 import           Data.Proxy
 import           Network.DO.Droplets.Commands
 import           Network.DO.Droplets.Utils
